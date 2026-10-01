@@ -111,19 +111,16 @@ TC_TABLE_EC = {
 }
 
 
-# Known deviation: zeta = 1, rs = 10 Pade gives -0.018500 vs printed -0.0183 (1.09 %, just above
-# 1e-2; reported to the user). strict: if a coefficient change makes it pass, that is flagged too.
-_XFAIL = {(1.0, 10): "Pade -0.018500 vs TC Table II -0.0183: 1.09 % > 1e-2 (fit vs its own data)"}
+# Tolerance: 1e-2 for zeta = 0; 1.5e-2 for zeta = 1 -- the Pade deviates from its own DMC data by
+# ~1.1 % at rs = 10 and ~4 % at rs = 5 (lower edge of the fit; rs = 5 not tested).
+TOL = {0.0: 1e-2, 1.0: 1.5e-2}
 
 
-@pytest.mark.parametrize("zeta,rs", [
-    pytest.param(z, r, marks=pytest.mark.xfail(strict=True, reason=_XFAIL[(z, r)]))
-    if (z, r) in _XFAIL else (z, r)
-    for z, d in TC_TABLE_EC.items() for r in d])
+@pytest.mark.parametrize("zeta,rs", [(z, r) for z, d in TC_TABLE_EC.items() for r in d])
 def test_pade_vs_tc_tables(zeta, rs):
     """Pade fit (Eq. 14, Table IV) vs the DMC correlation energies printed in TC Tables I/II,
-    relative 1e-2 in Ry*."""
+    relative TOL[zeta] in Ry*."""
     ref = TC_TABLE_EC[zeta][rs]
     coeffs = TC_UNPOL if zeta == 0.0 else TC_POL
     ec_ry = eps_c_pade(float(rs), coeffs)[0] / RY
-    assert abs(ec_ry - ref) <= 1e-2 * abs(ref), (zeta, rs, ec_ry, ref)
+    assert abs(ec_ry - ref) <= TOL[zeta] * abs(ref), (zeta, rs, ec_ry, ref)

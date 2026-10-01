@@ -56,7 +56,7 @@ class SCFParams:
     tol: float = 1e-4
     maxiter: int = 300
     method: str = DEFAULT_METHOD
-    nb_init: int = 100
+    nb_init: int = 160               # production: avoids 3 re-diagonalisations in iteration 1
     spin_polarized: bool = True
 
     def a_metal_au(self, units=Units()):

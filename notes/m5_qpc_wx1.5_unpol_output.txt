@@ -53,3 +53,9 @@ n_1D(x = 0)                   : 0.012061 nm^-1
 [dn] barrier top - e_0(far)   : 0.70943 meV  (top at x = 0.0 nm; e_0(0) - e_0(far) = 0.70943; bare 3.0)
 [dn] mu - e_0(far)            : 0.92962 meV
 [dn] mu - barrier top         : +0.22019 meV
+
+----------------------------------------------------------------------------------------------
+M5.2 ACCEPTED (user). Regression targets at x = 0 (single grid point; top = max over x):
+  n_1D(0) = 0.012061 nm^-1, barrier top - e_0(far) = 0.7094 meV, mu - top = +0.2202 meV.
+The earlier reference values 0.01235 / 0.691 / +0.239 were an average over |x| < 10 nm
+(3 grid points, x = 0, +-9.52 nm), which gives 0.012346 / 0.6905 / +0.2391 on this result.

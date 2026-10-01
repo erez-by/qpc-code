@@ -181,7 +181,7 @@ Effective potential for spin s (s = 0 up, 1 down; sigma_0 = +1, sigma_1 = -1):
 ```python
 @dataclass
 class SCFParams: kT, B_T, g=0.44, a_image_nm=100.0, interp="quadratic", alpha=0.2, history=8,
-                 tol=1e-4, maxiter=300, method=DEFAULT_METHOD, nb_init=100, spin_polarized=True
+                 tol=1e-4, maxiter=300, method=DEFAULT_METHOD, nb_init=160, spin_polarized=True
 
 def run_scf(ham, hartree, V_ext, p, mu=None, N=None, n_init=None, X_init=None) -> SCFResult
 ```
@@ -214,6 +214,14 @@ Calculations, in this order:
    about transport, not occupation.
 2. **QPC, unpolarised**, fixed mu = mu_wire, B = 0, start from the clean-wire density.
    Check: far from the QPC (|x| > 1.5 um) n_1D(x) -> 2.8e-2 nm^-1 within ~1 %.
+   Regression targets (hbar w_x = 1.5 meV, kT = 0.05 meV, a_image = 100 nm, mu = mu_wire(N=140)):
+   mu_wire = 8.9565 meV; ~30 iterations; far-field n_1D = 0.02800 nm^-1; N = 138.42;
+   e_0(far) = 8.027 meV; mu - e_0(far) = 0.930 meV; n_1D(x=0) = 0.012061 nm^-1;
+   barrier top - e_0(far) = 0.7094 meV; mu - top = +0.2202 meV.
+   Measurement convention: n_1D and the barrier at the single grid point x = 0 (top = max over
+   x of e_0(x), here at x = 0); e_0(x) = lowest eigenvalue of -1/2 d_y^2 + V_eff(x, y) on the full
+   y grid; e_0(far) = mean over |x| > 1.5 um. (An average over |x| < 10 nm, i.e. the 3 grid points
+   x = 0, +-9.52 nm, gives 0.012346 / 0.6905 / +0.2391 instead.)
 3. **QPC, spin-polarised, Janak ramp** (HMW: "first solve in a polarizing field, then reduce
    the field to zero"; Janak, PRB 16, 255 (1977)): start at B_max from the unpolarised
    density plus a small seed polarisation (n_up *= 1.01, n_dn *= 0.99 near the QPC),

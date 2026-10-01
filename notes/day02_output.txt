@@ -1,0 +1,37 @@
+==============================================================================
+1. Clean wire, hbar w_y = 2 meV, Lx = 5 um, E_cut = 15 meV
+  Ly = 320 nm: Nx x Ny = 525 x 35, n_pw = 3379, LOBPCG 36 it, max |E - E_exact| = 9.71e-06 meV
+  Ly = 480 nm: Nx x Ny = 525 x 50, n_pw = 5051, LOBPCG 36 it, max |E - E_exact| = 2.51e-05 meV
+  first n=1 level is state #95: E = 3.000009 meV (exact 3.000000)
+  max |E(320) - E(480)| = 1.61e-05 meV
+  edge of cell: V(Ly/2) = 45.0 meV, Ly/(2 l_y) = 6.7
+==============================================================================
+2. Attractive Poschl-Teller  -V0 sech^2(x/d), V0 = 3 meV, d = 82.6 nm
+  lam = 6.5203,  2 m V0 d^2 / hbar^2 = 35.994,  bound states: 6
+  state    exact (meV)   numeric (meV)  diff (meV)
+      0    -1.53989991     -1.53989924    6.72e-07
+      1    -0.70304635     -0.70304434    2.01e-06
+      2    -0.03288605     -0.03288235    3.70e-06
+      3     0.46010009      0.46011885    1.88e-05
+      4     0.47058099      0.47058533    4.34e-06
+      5     0.80735477      0.80735822    3.44e-06
+      6     0.97743529      0.97743678    1.49e-06
+  next (continuum, box-quantised): 1.000236 meV  (edge 1.0 meV)
+==============================================================================
+3. Non-interacting QPC, hbar w_x = 1.5 meV, V0 = 3 meV
+  d = 55.1 nm, n=0 barrier top = 4.000 meV, lowest state 1.00025 meV
+  148 states lie > 0.5 meV below the top; nearest-neighbour spacing there min 4.18e-04 meV, max 4.40e-02 meV
+  saved figures/day02_qpc_states.png
+==============================================================================
+4. Timing at production size, 90 bands
+  dense, full eigh                        7.38 s  -
+  dense, lowest only (evr)                3.42 s  -
+  LOBPCG cold, block precond             29.25 s  38 it
+  LOBPCG cold, TPA precond              240.21 s  216 it
+  LOBPCG warm (after dV = 0.05 meV)       9.76 s  21 it
+  max |E_lobpcg - E_dense|: cold 1.0e-11 meV, warm 1.3e-11 meV
+  -> per SCF diagonalisation: dense (lowest only)
+
+real	5m45.829s
+user	97m40.138s
+sys	0m42.273s

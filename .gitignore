@@ -5,3 +5,5 @@ figures/
 .pytest_cache/
 results/
 logs/
+results/
+logs/

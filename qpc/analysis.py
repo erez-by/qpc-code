@@ -61,3 +61,16 @@ def wire_subbands(ham, V, mu, kT):
     d = np.where(P.d > _PAD, np.inf, P.d)
     g0 = int(np.nonzero(np.unique(ham.ix) == 0)[0][0])
     return np.sort(d[g0]), fermi(d, mu, kT).sum(axis=0)
+
+
+def net_spin(res, grid):
+    """M = int (n_up - n_dn) dx dy  (electrons)."""
+    return float((res.n_up - res.n_dn).sum()) * grid.dx * grid.dy
+
+
+def net_spin_local(res, wire_res, grid):
+    """Local moment of the QPC: M_loc = int (n_up - n_dn) dx dy - (N_up - N_dn of the clean wire at
+    the same B, same cell). Removes the Zeeman polarisation of the leads; equals M at B = 0.
+    This is the number to compare with HMW (0.85, 0.93, 0.90). wire_res: SCFResult or CleanWire."""
+    w = getattr(wire_res, "res", wire_res)
+    return net_spin(res, grid) - net_spin(w, grid)

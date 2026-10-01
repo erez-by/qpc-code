@@ -126,6 +126,45 @@ def external_potential(grid, qpc_params, include_qpc=True):
     return V
 
 
+@dataclass
+class CleanWire:
+    """Interacting clean wire (V_QPC = 0) at field B and fixed N, the lead state rho0 of HMW Eq. (2).
+
+    res: the SCFResult (method="wire"); mu: mu_wire(B) [Ha*]; subbands[s]: transverse levels
+    e_n(k_x = 0) of spin s [Ha*]; N_sub[s]: electrons per subband for spin s; M = N_up - N_dn.
+    """
+    res: SCFResult
+    mu: float
+    subbands: list
+    N_sub: list
+    M: float
+
+    @property
+    def n_up(self):
+        return self.res.n_up
+
+    @property
+    def n_dn(self):
+        return self.res.n_dn
+
+
+def clean_wire(ham, hartree, qpc_params, p, N, n_init=None, verbose=False):
+    """Clean wire (bare parabola + V_H + v_xc,s + Zeeman, V_QPC = 0) at fixed N, field p.B_T.
+
+    Spin-polarised if p.spin_polarized (the Zeeman term -sigma_s E_Z/2 acts in the leads too,
+    HMW Eq. (2)). Solved with the exact block states (method="wire", per spin).
+    Returns CleanWire with mu_wire(B), the spin densities and the subbands per spin.
+    """
+    from .analysis import wire_subbands
+    pw = dataclasses.replace(p, method="wire")
+    V_ext = external_potential(ham.grid, qpc_params, include_qpc=False)
+    res = run_scf(ham, hartree, V_ext, pw, N=N, n_init=n_init, verbose=verbose)
+    kT = p.kT_au()
+    bands = [wire_subbands(ham, res.V[s], res.mu, kT) for s in range(2)]
+    return CleanWire(res=res, mu=res.mu, subbands=[b[0] for b in bands],
+                     N_sub=[b[1] for b in bands], M=res.M)
+
+
 def ks_potentials(V_ext, V_H, n_up, n_dn, EZ, interp):
     """[V_up, V_dn] = V_ext + V_H + v_xc,s - sigma_s E_Z/2  (Ha*)."""
     _, v_up, v_dn = exc_vxc(n_up, n_dn, interp)

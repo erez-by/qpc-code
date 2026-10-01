@@ -17,12 +17,11 @@ N_FLOOR = 1e-10            # a*^-2; below it eps = v = 0 (outside the wire)
 
 CX = 4.0 * np.sqrt(2.0) / (3.0 * np.pi)          # 0.60021 : eps_x(zeta=0) = -CX/rs Ha*
 
-# Tanatar-Ceperley Pade fit, TC 1989 Eq. (14), coefficients from TC 1989 Table IV, energies in
-# Ry* = Ha*/2 (TC Sec. I):
+# Tanatar-Ceperley Pade fit. Source: TC 1989, Eq. (14), Table IV; energies in Ry* = Ha*/2 (Sec. I).
+# Both coefficient rows are confirmed against the paper.
 #     eps_c(rs) = a0 (1 + a1 x)/(1 + a1 x + a2 x^2 + a3 x^3),   x = sqrt(rs)
-# Fit ranges of the underlying DMC data: normal (zeta = 0) rs = 1-50, polarised (zeta = 1)
-# rs = 5-75. The wire density peaks at rs ~ 2, i.e. the polarised fit is used below its data
-# range there (extrapolation; it enters only through the spin interpolation).
+# Fit ranges: rs = 1-50 (zeta = 0) and rs = 5-75 (zeta = 1). The wire peak has rs ~ 2, so the
+# zeta = 1 row is extrapolated there (it enters only through the spin interpolation).
 TC_UNPOL = (-0.3568, 1.1300, 0.9052, 0.4165)                  # zeta = 0 (a0, a1, a2, a3)
 TC_POL = (-0.0515, 340.5813, 75.2293, 37.0170)                # zeta = 1 (a0, a1, a2, a3)
 RY = 0.5                                                      # 1 Ry* = 0.5 Ha*
@@ -56,8 +55,9 @@ def spin_interp(zeta, interp):
     """Spin interpolation f(zeta) and f'(zeta), f(0) = 0, f(1) = 1.
 
     PHYSICS-CHOICE (docs/OPEN_QUESTIONS.md #2):
-      "quadratic" (default): f = z^2  -- TC's own prescription (E_c quadratic in zeta,
-                   exchange kept exact), TC 1989.
+      "quadratic" (default): f = z^2  -- TC's own prescription:
+                   E_c(rs, z) = E_c(rs, 0) + z^2 [E_c(rs, 1) - E_c(rs, 0)], exact exchange with
+                   its exact z-dependence (TC 1989). HMW do not state their interpolation.
       "exchange":  f = [(1+z)^{3/2} + (1-z)^{3/2} - 2] / (2^{3/2} - 2)
                    exchange-like interpolation (copies the zeta-dependence of the exact 2D
                    exchange); Koskinen, Manninen & Reimann, PRL 79, 1389 (1997).

@@ -4,16 +4,15 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
 `# PHYSICS-CHOICE:`. Ask the user / advisor.
 
 ## From docs/SPEC.md
-1. ~~Tanatar-Ceperley coefficients and energy unit~~ **Resolved:** verified by the user against
-   TC, PRB 39, 5005 (1989): form Eq. (14), coefficients Table IV, units Ry* (Sec. I). Fit ranges:
-   normal rs = 1-50, polarised rs = 5-75; the wire peak is at rs ~ 2 (polarised fit extrapolated).
-   Regression tests: polarised/unpolarised crossing in (33, 40) (35.9 now); Pade vs the printed
-   Table I/II correlation energies (rel. 1e-2) -- values still to be entered in
-   `tests/test_xc.py::TC_TABLE_EC` (test skipped until then).
-2. Spin interpolation used by HMW: not stated in the PRL. **Default now `quadratic`** (TC's own
-   prescription: E_c quadratic in zeta, exact exchange), in `xc.py` and `SCFParams`. Alternative
-   `exchange` = exchange-like interpolation (Koskinen, Manninen & Reimann, PRL 79, 1389 (1997));
-   previously mislabelled "von Barth-Hedin", `vbh` kept as an alias.
+1. ~~Tanatar-Ceperley coefficients and energy unit~~ **Resolved:** both rows verified against
+   TC, PRB 39, 5005 (1989): Eq. (14), Table IV, energies in Ry* (Sec. I). Fit ranges rs = 1-50
+   (zeta = 0), 5-75 (zeta = 1); wire peak rs ~ 2 (zeta = 1 row extrapolated). Tests: Pade vs
+   printed Table I/II E_c (rel. 1e-2) -- all pass except zeta = 1, rs = 10 (Pade -0.018500 vs
+   printed -0.0183, 1.09 %; strict xfail, reported); E(rs,1) - E(rs,0) changes sign in (30, 40).
+2. **PHYSICS-CHOICE: spin interpolation.** HMW do not state it. Default `quadratic` (TC's own
+   prescription: E_c(rs,z) = E_c(rs,0) + z^2 [E_c(rs,1) - E_c(rs,0)], exact exchange), in
+   `xc.py` and `SCFParams`. The `exchange` run (Koskinen, Manninen & Reimann, PRL 79, 1389
+   (1997); alias `vbh`) is a convergence/sensitivity check in M8.
 3. Gate model and distance a (image plane at 2a, a = 100 nm): not stated in the PRL.
 4. Temperature / smearing used by HMW (we use k_B T = 0.05 meV).
 5. Which HMW Fig. 1 panel corresponds to which hbar w_x.

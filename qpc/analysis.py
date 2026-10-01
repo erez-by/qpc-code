@@ -7,28 +7,40 @@ from .solver import XAveragedPreconditioner
 _PAD = 1e5          # XAveragedPreconditioner pads its blocks with 1e6 on the diagonal
 
 
-def transverse_levels(V, ham, n_levels=1):
+def transverse_levels(V, ham, n_levels=1, basis="grid"):
     """Lowest eigenvalues of the transverse operator h(x) = -(1/2) d^2/dy^2 + V(x, y) at every x.
 
-    Basis: the G_x = 0 plane waves of ham (|G_y|^2/2 <= e_cut), i.e. the same y basis as the KS
-    problem. <G_y|h(x)|G_y'> = G_y^2/2 delta + V_y(x)[(iy - iy') mod Ny], V_y(x) = fft_y(V(x,.))/Ny.
+    Plane waves in y: <G_y|h(x)|G_y'> = G_y^2/2 delta + V_y(x)[(iy - iy') mod Ny],
+    V_y(x) = fft_y(V(x,.))/Ny.
+      basis="grid" (default): all Ny plane waves of the y grid -- exact for the grid-sampled V
+                     (bare QPC barrier top (V0/2 + (w_y + V0)/2 = 4.000 meV) reproduced to 1e-5).
+      basis="cutoff": only the G_x = 0 plane waves with |G_y|^2/2 <= e_cut (the KS basis); 17
+                     waves at E_cut = 15 meV, which overestimates the stiff x = 0 level (+0.013 meV
+                     for the bare barrier).
     V: (Nx, Ny) Ha*. Returns (Nx, n_levels) Ha*.
     """
     g = ham.grid
-    sel = ham.ix == 0
-    iy = ham.iy[sel]
-    kin = ham.kinetic[sel]
+    if basis == "grid":
+        iy = np.arange(g.Ny)
+        kin = 0.5 * g.G_axes()[1] ** 2
+    elif basis == "cutoff":
+        sel = ham.ix == 0
+        iy = ham.iy[sel]
+        kin = ham.kinetic[sel]
+    else:
+        raise ValueError(basis)
     Vy = np.fft.fft(np.asarray(V, dtype=float), axis=1) / g.Ny            # (Nx, Ny)
     H = Vy[:, (iy[:, None] - iy[None, :]) % g.Ny] + np.diag(kin)[None]    # (Nx, m, m)
     return np.linalg.eigvalsh(H)[:, :n_levels]
 
 
-def barrier_profile(res, ham):
-    """Effective 1D barrier e_0,s(x): lowest transverse level of the KS potential V_s at each x,
-    per spin. Returns (Nx, 2) Ha*, in grid order (x_j = j dx; physical x = min_image)."""
+def barrier_profile(res, ham, basis="grid"):
+    """Effective 1D barrier e_0,s(x) (PRL Fig. 1(a)-(c)): lowest eigenvalue of
+    -(1/2) d_y^2 + V_eff,s(x, y) at each x, per spin (transverse_levels).
+    Returns (Nx, 2) Ha*, in grid order (x_j = j dx; physical x = min_image)."""
     if res.V is None:
         raise ValueError("SCFResult has no stored potentials (V)")
-    return np.stack([transverse_levels(res.V[s], ham)[:, 0] for s in range(2)], axis=1)
+    return np.stack([transverse_levels(res.V[s], ham, basis=basis)[:, 0] for s in range(2)], axis=1)
 
 
 def n1d(n, grid):

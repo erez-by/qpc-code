@@ -35,3 +35,15 @@ def test_wire_subbands_harmonic():
     assert 2 * N_sub[1:].sum() < 1e-5
     kF = np.pi * 2.8e-2 * U.length_nm / 2
     assert abs(mu - bottoms[0] - kF ** 2 / 2) < 2 * kT
+
+
+def test_transverse_levels_bare_qpc_top():
+    """Bare QPC at x = 0: -(1/2)d_y^2 + V0/2 + (1/2)(w_y + V0)^2 y^2 -> V0/2 + (w_y + V0)/2 = 4 meV."""
+    grid = grid_from_cutoff(U.nm_to_au(5000.0), U.nm_to_au(320.0), U.meV_to_au(15.0))
+    ham = Hamiltonian(grid, U.meV_to_au(15.0))
+    V = external_potential(grid, QPCParams(hbar_wx_meV=1.5))
+    e0 = U.au_to_meV(transverse_levels(V, ham)[:, 0])
+    assert abs(e0[0] - 4.0) < 1e-4
+    assert abs(e0[grid.Nx // 2] - 1.0) < 1e-4
+    # the KS cutoff basis is coarser at the stiff x = 0 point
+    assert U.au_to_meV(transverse_levels(V, ham, basis="cutoff")[0, 0]) > e0[0] + 5e-3

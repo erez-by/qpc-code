@@ -38,3 +38,15 @@ class Grid:
     def cutoff_mask(self, e_cut):
         """Boolean mask of plane waves with G^2/2 <= e_cut (Ha*)."""
         return self.kinetic() <= e_cut
+
+def grid_from_cutoff(Lx, Ly, e_cut):
+    """FFT-friendly Grid that resolves the density: Nyquist pi/dx >= 2 G_cut.
+
+    Lx, Ly, e_cut in atomic units; G_cut = sqrt(2 e_cut).
+    N >= 2 G_cut L / pi, rounded up to a fast FFT length.
+    """
+    from scipy.fft import next_fast_len
+    G_cut = np.sqrt(2.0 * e_cut)
+    nx = next_fast_len(int(np.ceil(2 * G_cut * Lx / np.pi)))
+    ny = next_fast_len(int(np.ceil(2 * G_cut * Ly / np.pi)))
+    return Grid(Lx, Ly, nx, ny)

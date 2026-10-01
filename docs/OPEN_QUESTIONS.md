@@ -5,9 +5,13 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
 
 ## From docs/SPEC.md
 1. Tanatar-Ceperley coefficients and energy unit (Ry*): verify against PRB 39, 5005 (1989) (M3).
-   In `qpc/xc.py` the zeta = 1 row (`TC_POL`) is marked `# UNVERIFIED`; the TC equation/table
-   number still has to go into the docstring.
-2. Spin interpolation used by HMW (`vbh` vs `quadratic`): not stated in the PRL.
+   Status: zeta = 0 row confirmed from a secondary source quoting TC (arXiv cond-mat/0103541),
+   not from TC itself. zeta = 1 row (`TC_POL`) not verified (no open source found), marked
+   `# UNVERIFIED`. Regression test: polarised/unpolarised total-energy crossing at rs = 35.9,
+   required to lie in (30, 40).
+2. Spin interpolation used by HMW (`exchange` vs `quadratic`): not stated in the PRL.
+   `exchange` = exchange-like interpolation (Koskinen, Manninen & Reimann, PRL 79, 1389 (1997));
+   previously mislabelled "von Barth-Hedin", `vbh` kept as an alias.
 3. Gate model and distance a (image plane at 2a, a = 100 nm): not stated in the PRL.
 4. Temperature / smearing used by HMW (we use k_B T = 0.05 meV).
 5. Which HMW Fig. 1 panel corresponds to which hbar w_x.

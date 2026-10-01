@@ -17,9 +17,10 @@ N_FLOOR = 1e-10            # a*^-2; below it eps = v = 0 (outside the wire)
 CX = 4.0 * np.sqrt(2.0) / (3.0 * np.pi)          # 0.60021 : eps_x(zeta=0) = -CX/rs Ha*
 
 # Tanatar-Ceperley Pade fit eps_c(rs) = a0 (1 + a1 x)/(1 + a1 x + a2 x^2 + a3 x^3), x = sqrt(rs),
-# energies in Ry* = Ha*/2. Source: TC 1989, Pade fit to the fixed-node DMC energies (fit
-# equation and coefficient table in the paper). Values as given in docs/SPEC.md M3.
-# Status: zeta = 0 row as in the spec; zeta = 1 row UNVERIFIED (user to check against TC).
+# energies in Ry* = Ha*/2 (TC, PRB 39, 5005 (1989)). Neither row was read from TC itself:
+#   zeta = 0: confirmed from a secondary source quoting TC, arXiv cond-mat/0103541
+#             (a0 = -0.3568, a1 = 1.13, a2 = 0.9052, a3 = 0.4165, energies in Ry*).
+#   zeta = 1: not verified (no open source found).
 TC_UNPOL = (-0.3568, 1.1300, 0.9052, 0.4165)                  # zeta = 0 (a0, a1, a2, a3)
 TC_POL = (-0.0515, 340.5813, 75.2293, 37.0170)                # UNVERIFIED  zeta = 1 (a0, a1, a2, a3)
 RY = 0.5                                                      # 1 Ry* = 0.5 Ha*
@@ -53,10 +54,13 @@ def spin_interp(zeta, interp):
     """Spin interpolation f(zeta) and f'(zeta), f(0) = 0, f(1) = 1.
 
     PHYSICS-CHOICE (docs/OPEN_QUESTIONS.md #2):
-      "vbh":       f = [(1+z)^{3/2} + (1-z)^{3/2} - 2] / (2^{3/2} - 2)   (2D von Barth-Hedin form)
+      "exchange":  f = [(1+z)^{3/2} + (1-z)^{3/2} - 2] / (2^{3/2} - 2)
+                   exchange-like interpolation (copies the zeta-dependence of the exact 2D
+                   exchange); Koskinen, Manninen & Reimann, PRL 79, 1389 (1997).
+                   "vbh" is a deprecated alias (earlier mislabel).
       "quadratic": f = z^2                                               (TC's quadratic form)
     """
-    if interp == "vbh":
+    if interp in ("exchange", "vbh"):
         c = 2.0 ** 1.5 - 2.0
         p, m = 1.0 + zeta, 1.0 - zeta
         return (p ** 1.5 + m ** 1.5 - 2.0) / c, 1.5 * (np.sqrt(p) - np.sqrt(m)) / c
@@ -65,7 +69,7 @@ def spin_interp(zeta, interp):
     raise ValueError(interp)
 
 
-def exc_vxc(n_up, n_dn, interp="vbh"):
+def exc_vxc(n_up, n_dn, interp="exchange"):
     """2D LSDA: eps_xc per electron and v_xc,up, v_xc,dn, all in Ha*, same shape as n_up.
 
     eps_xc = eps_x(rs, zeta) + eps_c^0(rs) + f(zeta) [eps_c^1(rs) - eps_c^0(rs)]
@@ -101,7 +105,7 @@ def exc_vxc(n_up, n_dn, interp="vbh"):
     return eps, v_up, v_dn
 
 
-def exc_energy(n_up, n_dn, dA, interp="vbh"):
+def exc_energy(n_up, n_dn, dA, interp="exchange"):
     """E_xc = sum n eps_xc dA  [Ha*], dA = dx dy."""
     eps, _, _ = exc_vxc(n_up, n_dn, interp)
     return float(np.sum((np.asarray(n_up) + np.asarray(n_dn)) * eps)) * dA

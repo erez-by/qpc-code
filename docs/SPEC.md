@@ -121,8 +121,8 @@ before production runs** — they are written from memory and unchecked. Write t
 close to the exact 2D high-density constant -0.38 Ry.
 
 Spin interpolation (PHYSICS-CHOICE, switch `interp=`):
-- `"vbh"` (default): eps_c(rs,zeta) = eps_c^0 + f(zeta) (eps_c^1 - eps_c^0),
-  f(zeta) = [(1+zeta)^{3/2} + (1-zeta)^{3/2} - 2] / (2^{3/2} - 2)   (2D von Barth-Hedin form)
+- `"exchange"` (default; alias `"vbh"`): eps_c(rs,zeta) = eps_c^0 + f(zeta) (eps_c^1 - eps_c^0),
+  f(zeta) = [(1+zeta)^{3/2} + (1-zeta)^{3/2} - 2] / (2^{3/2} - 2)   (exchange-like interpolation, Koskinen, Manninen & Reimann, PRL 79, 1389 (1997))
 - `"quadratic"`: f = zeta^2 (TC's own quadratic interpolation; Attaccalite et al.,
   PRL 88, 256601 (2002) show it underestimates the spin susceptibility).
 The local moment depends on this choice: run the B = 0, hbar w_x = 1.5 meV case with both.
@@ -137,7 +137,7 @@ n d zeta/d n_dn = -(1 + zeta).) Implement the derivatives analytically.
 Density floor: where n < 1e-10 a*^-2 set eps = v = 0 (outside the wire); clip |zeta| <= 1.
 
 ```python
-def exc_vxc(n_up, n_dn, interp="vbh") -> (eps_xc, v_up, v_dn)     # arrays, Ha*
+def exc_vxc(n_up, n_dn, interp="exchange") -> (eps_xc, v_up, v_dn)     # arrays, Ha*
 ```
 
 Tests: (i) functional derivative: for random smooth positive n_up, n_dn and perturbation dn,
@@ -176,7 +176,7 @@ Effective potential for spin s (s = 0 up, 1 down; sigma_0 = +1, sigma_1 = -1):
 
 ```python
 @dataclass
-class SCFParams: kT, B_T, g=0.44, a_nm=100.0, interp="vbh", alpha=0.2, history=8,
+class SCFParams: kT, B_T, g=0.44, a_nm=100.0, interp="exchange", alpha=0.2, history=8,
                  tol=1e-4, maxiter=300, method=DEFAULT_METHOD, nb_init=100, spin_polarized=True
 
 def run_scf(ham, hartree, V_ext, p, mu=None, N=None, n_init=None, X_init=None) -> SCFResult
@@ -259,7 +259,7 @@ Fig. 1/2 data exist.
 ---------------------------------------------------------------------------------------------
 ## Open questions (also in docs/OPEN_QUESTIONS.md; ask the user / advisor)
 1. TC coefficients and units: verify against the paper (M3).
-2. Spin interpolation used by HMW (vbh vs quadratic) — not stated in the PRL.
+2. Spin interpolation used by HMW (exchange vs quadratic) — not stated in the PRL.
 3. Gate model and distance a (image plane at 2a) — not stated in the PRL.
 4. Temperature / smearing of HMW.
 5. Which HMW Fig. 1 panel corresponds to which hbar w_x.

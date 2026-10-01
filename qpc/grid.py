@@ -47,6 +47,6 @@ def grid_from_cutoff(Lx, Ly, e_cut):
     """
     from scipy.fft import next_fast_len
     G_cut = np.sqrt(2.0 * e_cut)
-    nx = next_fast_len(int(np.ceil(2 * G_cut * Lx / np.pi)))
+    nx = next_fast_len(int(np.ceil(2 * G_cut * Lx / np.pi))) # calcualted the number of points in x direction
     ny = next_fast_len(int(np.ceil(2 * G_cut * Ly / np.pi)))
     return Grid(Lx, Ly, nx, ny)

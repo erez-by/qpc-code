@@ -4,12 +4,14 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
 `# PHYSICS-CHOICE:`. Ask the user / advisor.
 
 ## From docs/SPEC.md
-1. Tanatar-Ceperley coefficients and energy unit (Ry*): verify against PRB 39, 5005 (1989) (M3).
-   Status: zeta = 0 row confirmed from a secondary source quoting TC (arXiv cond-mat/0103541),
-   not from TC itself. zeta = 1 row (`TC_POL`) not verified (no open source found), marked
-   `# UNVERIFIED`. Regression test: polarised/unpolarised total-energy crossing at rs = 35.9,
-   required to lie in (30, 40).
-2. Spin interpolation used by HMW (`exchange` vs `quadratic`): not stated in the PRL.
+1. ~~Tanatar-Ceperley coefficients and energy unit~~ **Resolved:** verified by the user against
+   TC, PRB 39, 5005 (1989): form Eq. (14), coefficients Table IV, units Ry* (Sec. I). Fit ranges:
+   normal rs = 1-50, polarised rs = 5-75; the wire peak is at rs ~ 2 (polarised fit extrapolated).
+   Regression tests: polarised/unpolarised crossing in (33, 40) (35.9 now); Pade vs the printed
+   Table I/II correlation energies (rel. 1e-2) -- values still to be entered in
+   `tests/test_xc.py::TC_TABLE_EC` (test skipped until then).
+2. Spin interpolation used by HMW: not stated in the PRL. **Default now `quadratic`** (TC's own
+   prescription: E_c quadratic in zeta, exact exchange), in `xc.py` and `SCFParams`. Alternative
    `exchange` = exchange-like interpolation (Koskinen, Manninen & Reimann, PRL 79, 1389 (1997));
    previously mislabelled "von Barth-Hedin", `vbh` kept as an alias.
 3. Gate model and distance a (image plane at 2a, a = 100 nm): not stated in the PRL.

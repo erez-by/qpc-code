@@ -42,7 +42,7 @@ class SCFParams:
     B_T: float = 0.0
     g: float = 0.44
     a_nm: float = 100.0
-    interp: str = "exchange"
+    interp: str = "quadratic"
     alpha: float = 0.2
     history: int = 8
     tol: float = 1e-4

@@ -8,7 +8,8 @@ n d zeta/d n_up = 1 - zeta, n d zeta/d n_dn = -(1 + zeta)):
     v_xc,dn = eps - (rs/2) d eps/d rs - (1 + zeta) d eps/d zeta
 
 References: Tanatar & Ceperley, PRB 39, 5005 (1989) [TC] (HMW ref. [20]); Attaccalite et al.,
-PRL 88, 256601 (2002) on the spin interpolation.
+PRL 88, 256601 (2002) on the spin interpolation. Default interpolation "quadratic" is TC's own
+prescription: E_c quadratic in zeta, exchange exact.
 """
 import numpy as np
 
@@ -16,13 +17,14 @@ N_FLOOR = 1e-10            # a*^-2; below it eps = v = 0 (outside the wire)
 
 CX = 4.0 * np.sqrt(2.0) / (3.0 * np.pi)          # 0.60021 : eps_x(zeta=0) = -CX/rs Ha*
 
-# Tanatar-Ceperley Pade fit eps_c(rs) = a0 (1 + a1 x)/(1 + a1 x + a2 x^2 + a3 x^3), x = sqrt(rs),
-# energies in Ry* = Ha*/2 (TC, PRB 39, 5005 (1989)). Neither row was read from TC itself:
-#   zeta = 0: confirmed from a secondary source quoting TC, arXiv cond-mat/0103541
-#             (a0 = -0.3568, a1 = 1.13, a2 = 0.9052, a3 = 0.4165, energies in Ry*).
-#   zeta = 1: not verified (no open source found).
+# Tanatar-Ceperley Pade fit, TC 1989 Eq. (14), coefficients from TC 1989 Table IV, energies in
+# Ry* = Ha*/2 (TC Sec. I):
+#     eps_c(rs) = a0 (1 + a1 x)/(1 + a1 x + a2 x^2 + a3 x^3),   x = sqrt(rs)
+# Fit ranges of the underlying DMC data: normal (zeta = 0) rs = 1-50, polarised (zeta = 1)
+# rs = 5-75. The wire density peaks at rs ~ 2, i.e. the polarised fit is used below its data
+# range there (extrapolation; it enters only through the spin interpolation).
 TC_UNPOL = (-0.3568, 1.1300, 0.9052, 0.4165)                  # zeta = 0 (a0, a1, a2, a3)
-TC_POL = (-0.0515, 340.5813, 75.2293, 37.0170)                # UNVERIFIED  zeta = 1 (a0, a1, a2, a3)
+TC_POL = (-0.0515, 340.5813, 75.2293, 37.0170)                # zeta = 1 (a0, a1, a2, a3)
 RY = 0.5                                                      # 1 Ry* = 0.5 Ha*
 
 
@@ -54,11 +56,12 @@ def spin_interp(zeta, interp):
     """Spin interpolation f(zeta) and f'(zeta), f(0) = 0, f(1) = 1.
 
     PHYSICS-CHOICE (docs/OPEN_QUESTIONS.md #2):
+      "quadratic" (default): f = z^2  -- TC's own prescription (E_c quadratic in zeta,
+                   exchange kept exact), TC 1989.
       "exchange":  f = [(1+z)^{3/2} + (1-z)^{3/2} - 2] / (2^{3/2} - 2)
                    exchange-like interpolation (copies the zeta-dependence of the exact 2D
                    exchange); Koskinen, Manninen & Reimann, PRL 79, 1389 (1997).
                    "vbh" is a deprecated alias (earlier mislabel).
-      "quadratic": f = z^2                                               (TC's quadratic form)
     """
     if interp in ("exchange", "vbh"):
         c = 2.0 ** 1.5 - 2.0
@@ -69,7 +72,7 @@ def spin_interp(zeta, interp):
     raise ValueError(interp)
 
 
-def exc_vxc(n_up, n_dn, interp="exchange"):
+def exc_vxc(n_up, n_dn, interp="quadratic"):
     """2D LSDA: eps_xc per electron and v_xc,up, v_xc,dn, all in Ha*, same shape as n_up.
 
     eps_xc = eps_x(rs, zeta) + eps_c^0(rs) + f(zeta) [eps_c^1(rs) - eps_c^0(rs)]
@@ -105,7 +108,7 @@ def exc_vxc(n_up, n_dn, interp="exchange"):
     return eps, v_up, v_dn
 
 
-def exc_energy(n_up, n_dn, dA, interp="exchange"):
+def exc_energy(n_up, n_dn, dA, interp="quadratic"):
     """E_xc = sum n eps_xc dA  [Ha*], dA = dx dy."""
     eps, _, _ = exc_vxc(n_up, n_dn, interp)
     return float(np.sum((np.asarray(n_up) + np.asarray(n_dn)) * eps)) * dA

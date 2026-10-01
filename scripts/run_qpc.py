@@ -61,7 +61,7 @@ def main():
     grid = grid_from_cutoff(U.nm_to_au(LX_NM), U.nm_to_au(LY_NM), U.meV_to_au(ECUT_MEV))
     ham = Hamiltonian(grid, U.meV_to_au(ECUT_MEV))
     p = SCFParams(spin_polarized=False, B_T=0.0)
-    hart = Hartree(grid, U.nm_to_au(p.a_nm))
+    hart = Hartree(grid, p.a_metal_au(U))
     q = QPCParams(hbar_wx_meV=args.wx)
     ref = clean_wire_reference(ham, q, N1D_NM * LX_NM, p.kT_au(U))
     print(f"reference wire: mu_wire = {U.au_to_meV(ref.mu):.5f} meV, N = {ref.N}")

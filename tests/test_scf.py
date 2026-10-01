@@ -12,19 +12,19 @@ from qpc.units import Units
 
 U = Units()
 E_CUT = 0.8
-A_NM = 50.0
+A_IMAGE_NM = 100.0          # charge <-> image distance; Hartree gets a_m = A_IMAGE_NM / 2
 
 
 @pytest.fixture(scope="module")
 def small():
     grid = grid_from_cutoff(60.0, 24.0, E_CUT)
     ham = Hamiltonian(grid, E_CUT)
-    hart = Hartree(grid, U.nm_to_au(A_NM), verbose=False)
+    hart = Hartree(grid, U.nm_to_au(A_IMAGE_NM / 2), verbose=False)
     return grid, ham, hart
 
 
 def params(**kw):
-    base = dict(kT=0.5, a_nm=A_NM, nb_init=30, tol=1e-7)
+    base = dict(kT=0.5, a_image_nm=A_IMAGE_NM, nb_init=30, tol=1e-7)
     base.update(kw)
     return SCFParams(**base)
 

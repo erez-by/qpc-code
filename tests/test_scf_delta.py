@@ -21,7 +21,7 @@ def prod_wire():
     grid = grid_from_cutoff(U.nm_to_au(5000.0), U.nm_to_au(320.0), U.meV_to_au(15.0))
     ham = Hamiltonian(grid, U.meV_to_au(15.0))
     p = SCFParams(spin_polarized=False, method="wire", tol=1e-9)
-    hart = Hartree(grid, U.nm_to_au(p.a_nm), verbose=False)
+    hart = Hartree(grid, p.a_metal_au(U), verbose=False)
     ref = clean_wire_reference(ham, QPCParams(), N1D_NM * 5000.0, p.kT_au(U))
     return grid, ham, hart, p, ref
 
@@ -68,7 +68,7 @@ def test_qpc_far_field_density():
     grid = grid_from_cutoff(U.nm_to_au(Lx_nm), U.nm_to_au(320.0), U.meV_to_au(10.0))
     ham = Hamiltonian(grid, U.meV_to_au(10.0))
     p = SCFParams(spin_polarized=False, method="dense")
-    hart = Hartree(grid, U.nm_to_au(p.a_nm), verbose=False)
+    hart = Hartree(grid, p.a_metal_au(U), verbose=False)
     q = QPCParams(hbar_wx_meV=1.5)
     ref = clean_wire_reference(ham, q, N1D_NM * Lx_nm, p.kT_au(U))
     V_eff = build_external(grid, hart, q, p, ref)

@@ -12,7 +12,7 @@ Physical parameters (HMW and project decisions):
 | V0 | 3.0 meV | barrier, Eq. (1) |
 | hbar w_x | 1.0, 1.5, 2.0 meV | three QPC lengths (d = sqrt(2 V0/m*)/w_x = 82.6, 55.1, 41.3 nm) |
 | n_1D | 2.8e-2 nm^-1 total (1.40e-2 per spin, HMW text) | lead density |
-| a | 100 nm | gate (metal plane) distance, image charge at 2a — PHYSICS-CHOICE |
+| a_image | 100 nm | charge <-> image-charge distance (HW Eq. 1, HMW delta V_H); metal plane at a_m = a_image/2 = 50 nm |
 | g* | 0.44 (|g| of bulk GaAs), mu_B = 5.788e-2 meV/T | E_Z = g* mu_B B = 0.153 meV at 6 T |
 | k_B T | 0.05 meV (Fermi smearing) | PHYSICS-CHOICE |
 | E_cut, Lx, Ly | 15 meV, 5000 nm, 320 nm | Day 1-2 decisions |
@@ -49,20 +49,24 @@ at the Fermi energy; (iii) density integrates to sum_i f_i (Parseval):
 ---------------------------------------------------------------------------------------------
 ## M2. `qpc/hartree.py` — gate-screened Hartree, periodic in x, OPEN in y
 
-Interaction of two electrons in the 2DEG with a metal plane at distance a (image charge at 2a):
+Interaction of two electrons in the 2DEG with a metal plane (HW Eq. (1), HMW delta V_H), with
+a_image = 100 nm the distance charge <-> image charge (metal plane at a_m = a_image/2):
 
-    v(rho) = 1/rho - 1/sqrt(rho^2 + 4 a^2)          (e^2/eps already = 1 in a.u.)
+    v(rho) = 1/rho - 1/sqrt(rho^2 + a_image^2)      (e^2/eps already = 1 in a.u.)
+
+Code convention: `Hartree(grid, a)` takes the metal-plane distance a = a_m = a_image/2, and its
+kernel is written 1/rho - 1/sqrt(rho^2 + 4 a^2) (identical). `SCFParams.a_image_nm = 100`.
 
 **Why not a 2D FFT:** the cell is periodic in y with Ly = 320 nm. A periodic FFT would add image
 wires at y = +-Ly, +-2Ly, .... A line charge lambda at distance D with the gate gives
-2 lambda ln(sqrt(D^2+4a^2)/D): for D = 320 nm this is 2*0.164*lambda per image, vs about
+2 lambda ln(sqrt(D^2+a_image^2)/D): for D = 320 nm this is 2*0.164*lambda per image, vs about
 2*2.3*lambda for the wire itself: a ~14 % error. So: Fourier series in x (periodic is
 physical: the wire continues), direct convolution in y (open boundary).
 
 1D Fourier transform in x of v at fixed y (k = G_x):
 
-    w(k, y) = int dx e^{-ikx} v(x, y) = 2 [ K0(|k||y|) - K0(|k| sqrt(y^2 + 4a^2)) ]   (k != 0)
-    w(0, y) = ln( (y^2 + 4 a^2) / y^2 )                                               (k = 0)
+    w(k, y) = int dx e^{-ikx} v(x, y) = 2 [ K0(|k||y|) - K0(|k| sqrt(y^2 + a_image^2)) ]   (k != 0)
+    w(0, y) = ln( (y^2 + a_image^2) / y^2 )                                               (k = 0)
 
 (uses int dx cos(kx)/sqrt(x^2+c^2) = 2 K0(|k| c); the k=0 limit follows from
 K0(z) ~ -ln(z/2) - gamma.) w has an integrable log singularity at y = 0, so use the
@@ -87,7 +91,7 @@ class Hartree:
     def energy(self, n)                  # 0.5 * sum n V_H dx dy
 ```
 
-Tests (tolerances relative 1e-3 unless stated):
+Tests (tolerances relative 1e-3 unless stated; here a = a_m, the metal-plane distance passed to Hartree):
 (a) x-uniform Gaussian line charge n(y) = (lambda/(sqrt(2pi) s)) exp(-y^2/2s^2), s = 25 nm:
     V_H(y=0) = int dy' n(y') ln(1 + 4a^2/y'^2), reference by scipy.quad.
 (b) 2D Gaussian blob n = Q/(2 pi s^2) exp(-rho^2/2s^2), s = 30 nm, at the cell centre:
@@ -176,7 +180,7 @@ Effective potential for spin s (s = 0 up, 1 down; sigma_0 = +1, sigma_1 = -1):
 
 ```python
 @dataclass
-class SCFParams: kT, B_T, g=0.44, a_nm=100.0, interp="quadratic", alpha=0.2, history=8,
+class SCFParams: kT, B_T, g=0.44, a_image_nm=100.0, interp="quadratic", alpha=0.2, history=8,
                  tol=1e-4, maxiter=300, method=DEFAULT_METHOD, nb_init=100, spin_polarized=True
 
 def run_scf(ham, hartree, V_ext, p, mu=None, N=None, n_init=None, X_init=None) -> SCFResult

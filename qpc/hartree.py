@@ -5,8 +5,9 @@ distance 2a, opposite sign), atomic units (e^2/eps = 1):
 
     v(rho) = 1/rho - 1/sqrt(rho^2 + 4 a^2)
 
-PHYSICS-CHOICE: single metal plane at distance a (default a = 100 nm in SCFParams); HMW do not
-state their electrostatics (docs/OPEN_QUESTIONS.md #3).
+Convention: the argument `a` of Hartree is the METAL-PLANE distance a_m. HW Eq. (1) and HMW's
+delta V_H write the kernel as 1/rho - 1/sqrt(rho^2 + a_image^2) with a_image = 100 nm the
+charge <-> image distance, so a_m = a_image / 2 = 50 nm (SCFParams.a_image_nm, a_metal_au).
 
 A 2D FFT would add periodic image wires at y = +-Ly, ... (~14 % error for Ly = 320 nm, see
 docs/SPEC.md M2), so y is treated with an open boundary: physical y coordinates are

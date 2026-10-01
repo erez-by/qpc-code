@@ -46,14 +46,18 @@ _PAD = 1e5                     # XAveragedPreconditioner pads blocks with 1e6 on
 
 @dataclass
 class SCFParams:
-    """SCF settings. kT in meV, B_T in tesla, a_nm in nm (input units); converted internally.
+    """SCF settings. kT in meV, B_T in tesla, a_image_nm in nm (input units); converted internally.
+
+    a_image_nm: distance charge <-> image charge (HW Eq. (1), HMW delta V_H kernel
+    1/rho - 1/sqrt(rho^2 + a_image^2), a_image = 100 nm). The Hartree class takes the
+    metal-plane distance a_m = a_image / 2 (its kernel is 1/rho - 1/sqrt(rho^2 + 4 a_m^2)).
 
     PHYSICS-CHOICE defaults (docs/OPEN_QUESTIONS.md): kT = 0.05 meV, a = 100 nm, interp.
     """
     kT: float = 0.05
     B_T: float = 0.0
     g: float = 0.44
-    a_nm: float = 100.0
+    a_image_nm: float = 100.0
     interp: str = "quadratic"
     alpha: float = 0.2
     history: int = 8
@@ -63,6 +67,10 @@ class SCFParams:
     nb_init: int = 100
     spin_polarized: bool = True
     reference: str = "delta"         # "delta" (default) | "full" (diagnostic), see module docstring
+
+    def a_metal_au(self, units=Units()):
+        """Metal-plane distance a_m = a_image / 2 in a* (the argument of Hartree)."""
+        return units.nm_to_au(0.5 * self.a_image_nm)
 
     def kT_au(self, units=Units()):
         return units.meV_to_au(self.kT)
@@ -242,8 +250,8 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
     """
     if (mu is None) == (N is None):
         raise ValueError("give exactly one of mu, N")
-    if abs(hartree.a - units.nm_to_au(p.a_nm)) > 1e-9 * hartree.a:
-        raise ValueError("hartree.a does not match SCFParams.a_nm")
+    if abs(hartree.a - p.a_metal_au(units)) > 1e-9 * hartree.a:
+        raise ValueError("hartree.a must equal SCFParams.a_image_nm / 2 (metal-plane distance)")
     g = ham.grid
     dA = g.dx * g.dy
     kT = p.kT_au(units)

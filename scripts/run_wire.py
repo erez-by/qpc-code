@@ -76,7 +76,7 @@ def main():
         sys.exit(0 if ok else 1)
 
     p = SCFParams(spin_polarized=False, method="wire", B_T=0.0, reference="full")
-    hart = Hartree(grid, U.nm_to_au(p.a_nm))
+    hart = Hartree(grid, p.a_metal_au(U))
     V_ext = external_potential(grid, QPCParams(), include_qpc=False)
     if os.path.exists(OUT_FULL) and not args.force and SCFResult.load_npz(OUT_FULL).converged:
         print(f"{OUT_FULL} exists and is converged; loading (use --force to recompute)")

@@ -43,7 +43,6 @@ def test_fft_matches_exact_sech2():
     assert np.isclose(Vt[0].real, scale)
 
 
-@pytest.mark.xfail(raises=NotImplementedError, reason="write ft_mpmath yourself")
 def test_mpmath_matches_exact():
     mp.mp.dps = 40
     d, V0 = mp.mpf("4.05"), mp.mpf("0.27")

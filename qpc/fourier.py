@@ -37,4 +37,12 @@ def ft_mpmath(f, k, h, x_max, dps=40):
     Return an mpf (f is even, so the transform is real).
     """
     mp.mp.dps = dps
-    raise NotImplementedError
+    n = int(x_max /h)
+    h = mp.mpf(h)
+    k = mp.mpf(k)
+    x_max = mp.mpf(x_max)
+    total = f(0)/2
+    for j in range(1, n + 1):
+        x = j * h
+        total += f(x) * mp.cos(k * x)
+    return 2*h*total

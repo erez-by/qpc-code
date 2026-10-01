@@ -1,34 +1,11 @@
-Hartree: kernel W (263, 35, 35) built in 0.98 s
-SCF: unpolarised, N = 140.0000, B = 0.0 T, kT = 0.05 meV, method = wire, interp = exchange
-  it   residual    mu(meV)          N          M    nb    t(s)
-     band margin too small: nb -> 120
-     band margin too small: nb -> 140
-   1  1.351e+02   13.55258   140.0000    0.00000   140    0.11
-     band margin too small: nb -> 160
-   2  9.558e+01   13.19818   140.0000    0.00000   160    0.16
-   3  3.895e+01   12.67923   140.0000    0.00000   160    0.10
-   4  3.715e+01   12.68634   140.0000    0.00000   160    0.09
-   5  2.074e+01   12.81318   140.0000    0.00000   160    0.09
-   6  2.323e+00   12.88026   140.0000    0.00000   160    0.09
-   7  9.946e-01   12.86237   140.0000    0.00000   160    0.09
-   8  2.118e-01   12.86677   140.0000    0.00000   160    0.09
-   9  5.239e-02   12.86799   140.0000    0.00000   160    0.10
-  10  5.605e-03   12.86785   140.0000    0.00000   160    0.10
-  11  4.981e-04   12.86780   140.0000    0.00000   160    0.10
-  12  3.858e-04   12.86780   140.0000    0.00000   160    0.09
-  13  2.694e-04   12.86780   140.0000    0.00000   160    0.09
-  14  5.893e-07   12.86781   140.0000    0.00000   160    0.09
-SCF converged after 14 iterations, 1.4 s
-saved results/wire.npz
+saved results/wire_ref.npz
 
-=== clean wire (M5.1) ===
-converged: True in 14 iterations, N = 140.000000
-mu_wire                       = 12.86781 meV
-subband bottoms e_n(k_x=0)    = 11.98524, 12.87406, 14.31087, 15.89815 meV
-subband spacing e_1 - e_0     = 0.88882 meV (bare 2.0 meV)
-electrons per subband n=0,1,2 = 125.2319, 14.7681, 0.0000
-electrons in subbands n >= 1  = 14.7681  (of 140.0)
-mu - e_0                      = 0.88256 meV
+=== clean wire (M5.1): non-interacting reference (delta formulation) ===
+mu_wire                       = 2.10192 meV
+subband bottoms e_n(k_x=0)    = 1.00000, 3.00001, 5.00014, 7.00127 meV
+subband spacing e_1 - e_0     = 2.00001 meV
+electrons per subband n=0,1,2 = 140.0000, 0.0000, 0.0000  (of 140.0)
+mu - e_0                      = 1.10192 meV
 k_F^2/2 (k_F = pi n_1D/2)     = 1.10003 meV
-tolerance ~ 2 kT + level sp.  = 0.16286 meV
-ACCEPTANCE (single subband, mu - e_0 = k_F^2/2): FAIL
+tolerance 2 kT + level sp.    = 0.16286 meV
+ACCEPTANCE (single subband, mu - e_0 = k_F^2/2): PASS

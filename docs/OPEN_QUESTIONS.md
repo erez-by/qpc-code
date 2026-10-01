@@ -26,11 +26,12 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
    `Hartree(..., y_rule="quadratic")`: same exact kernel w(k, y), but n quadratic (central
    differences) inside each cell, error O(dy^4): 8.9e-5 at production dy. `y_rule="cell"` keeps
    the spec's rule. Public interface (`Hartree(grid, a)`, `potential`, `energy`) unchanged.
-7. **Clean wire is not single-subband (M5.1 acceptance FAILS).** With hbar w_y = 2 meV,
-   n_1D = 2.8e-2 nm^-1, gate a = 100 nm, LSDA (exchange interp.), kT = 0.05 meV: the
-   self-consistent subband spacing is 0.889 meV (bare 2.0 meV; Hartree ~15.9 meV at the centre
-   flattens the parabola into a shallow double well), mu_wire = 12.868 meV sits 6 ueV below the
-   n = 1 subband bottom, and n = 1 holds 14.8 of 140 electrons. mu - e_0 = 0.883 meV instead
-   of k_F^2/2 = 1.100 meV (consistent with the 125.2 electrons left in n = 0: 0.880 meV).
-   Not tuned. Options: smaller a (stronger screening), different reading of HMW's n_1D
-   (per spin vs total), larger hbar w_y, positive background. Needs a decision before M5.2.
+7. **Clean wire / lead reference — resolved (user decision): delta formulation.** The lead is
+   the NON-interacting harmonic clean wire n_ref (hbar w_y = 2 meV, N = 140, kT), mu_wire =
+   2.1019 meV, mu - e_0 = 1.1019 meV (k_F^2/2 = 1.1000): single subband, M5.1 PASS. The KS
+   potential is dV_s = V_QPC + V_H[n - n_ref] + (v_xc,s[n] - v_xc[n_ref/2, n_ref/2]),
+   implemented as V_ext_eff = parabola + V_QPC - V_H[n_ref] - v_xc[ref] (`delta_external`,
+   `SCFParams.reference = "delta"`). The unpolarised reference v_xc is subtracted for both spins.
+   Diagnostic kept as `reference = "full"` / `run_wire.py --full`: the interacting wire with full
+   Hartree + xc has subband spacing 0.889 meV, the n = 1 subband at mu (14.8 of 140 electrons),
+   and mu - e_0 = 0.883 meV (notes/m5_wire_full_output.txt).

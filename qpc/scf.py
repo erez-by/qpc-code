@@ -9,6 +9,18 @@ Loop: V_s -> lowest KS states per spin -> occupations (fixed mu: f = fermi(e, mu
 mu = find_mu) -> more bands if check_band_margin fails -> n_out,s -> Pulay -> repeat, until
 sum_s int |n_out,s - n_in,s| < tol AND |M_out - M_in| < tol (M = int (n_up - n_dn)).
 
+Reference subtraction (default, SCFParams.reference = "delta"; the delta formulation of HMW):
+the lead is the NON-interacting harmonic clean wire n_ref (hbar w_y, N = n_1D Lx, kT) with
+chemical potential mu_wire, and only deviations from it act:
+
+    dV_s = V_QPC + V_H[n - n_ref] + (v_xc,s[n_up, n_dn] - v_xc[n_ref/2, n_ref/2])
+
+Since the reference terms are constants, this is the full KS potential with
+    V_ext_eff = (1/2) w_y^2 y^2 + V_QPC - V_H[n_ref] - v_xc[n_ref/2, n_ref/2]
+(same constant for both spins; delta_external). Far from the QPC n -> n_ref and V_s -> the bare
+parabola. reference = "full" (V_ext = parabola + V_QPC, full Hartree + xc) is kept only as a
+diagnostic: there the interacting clean wire has its 2nd subband at mu (docs/OPEN_QUESTIONS.md #7).
+
 Inputs in physical units (meV, T, nm) are converted here; everything inside is atomic units.
 """
 import dataclasses
@@ -50,6 +62,7 @@ class SCFParams:
     method: str = DEFAULT_METHOD
     nb_init: int = 100
     spin_polarized: bool = True
+    reference: str = "delta"         # "delta" (default) | "full" (diagnostic), see module docstring
 
     def kT_au(self, units=Units()):
         return units.meV_to_au(self.kT)
@@ -73,6 +86,7 @@ class SCFResult:
     params: SCFParams
     residual: float = np.nan
     history: list = field(default_factory=list)   # per iteration (it, residual, mu, N, M, time)
+    V: list = None               # [V_up, V_dn] KS potentials (Ha*) of the last iteration
 
     def save_npz(self, path):
         """Save everything (params as JSON) to an .npz file."""
@@ -82,7 +96,8 @@ class SCFResult:
             mu=self.mu, N=self.N, M=self.M, iterations=self.iterations,
             converged=self.converged, residual=self.residual,
             history=np.array(self.history, dtype=float).reshape(-1, 6),
-            params=json.dumps(dataclasses.asdict(self.params)))
+            params=json.dumps(dataclasses.asdict(self.params)),
+            **({} if self.V is None else {"V_up": self.V[0], "V_dn": self.V[1]}))
 
     @classmethod
     def load_npz(cls, path):
@@ -92,7 +107,8 @@ class SCFResult:
                    M=float(z["M"]), iterations=int(z["iterations"]),
                    converged=bool(z["converged"]), residual=float(z["residual"]),
                    history=[tuple(r) for r in z["history"]],
-                   params=SCFParams(**json.loads(str(z["params"]))))
+                   params=SCFParams(**json.loads(str(z["params"]))),
+                   V=[z["V_up"], z["V_dn"]] if "V_up" in z else None)
 
 
 # ----------------------------------------------------------------------------- potentials
@@ -109,6 +125,68 @@ def external_potential(grid, qpc_params, include_qpc=True):
     if include_qpc:
         V = V + V_qpc(X, Y, qpc_params)
     return V
+
+
+@dataclass
+class WireReference:
+    """Non-interacting harmonic clean wire (the lead reference of the delta formulation).
+
+    n_ref: total density (Nx, Ny) a*^-2; mu: chemical potential Ha*; eigs: KS levels (per spin);
+    subbands: transverse levels e_n(k_x = 0) Ha*; N_sub: electrons per subband (both spins).
+    """
+    n_ref: np.ndarray
+    mu: float
+    eigs: np.ndarray
+    subbands: np.ndarray
+    N_sub: np.ndarray
+    N: float
+    kT: float
+
+
+def clean_wire_reference(ham, qpc_params, N, kT, nb=100):
+    """Non-interacting clean wire V = (1/2) w_y^2 y^2 at fixed N (both spins), temperature kT (Ha*).
+
+    Exact states from the G_x blocks (wire_states); mu from find_mu on [e, e];
+    n_ref = 2 sum_i f_i |psi_i|^2 / (Lx Ly). Bands are added until check_band_margin holds.
+    """
+    V = external_potential(ham.grid, qpc_params, include_qpc=False)
+    ham.set_potential(V)
+    while True:
+        e, X = wire_states(ham, nb)
+        mu = find_mu([e, e], N, kT)
+        if check_band_margin(e, mu, kT):
+            break
+        nb += 20
+    n_ref = 2.0 * density(ham, X, fermi(e, mu, kT))
+    P = XAveragedPreconditioner(ham)
+    d = np.where(P.d > _PAD, np.inf, P.d)
+    g0 = int(np.nonzero(np.unique(ham.ix) == 0)[0][0])
+    N_sub = 2.0 * fermi(d, mu, kT).sum(axis=0)
+    return WireReference(n_ref=n_ref, mu=mu, eigs=e, subbands=np.sort(d[g0]), N_sub=N_sub,
+                         N=float(N), kT=float(kT))
+
+
+def delta_external(grid, hartree, qpc_params, ref, include_qpc=True, interp="quadratic"):
+    """V_ext_eff = (1/2) w_y^2 y^2 + V_QPC - V_H[n_ref] - v_xc[n_ref/2, n_ref/2]   [Ha*].
+
+    With it, V_s = V_ext_eff + V_H[n] + v_xc,s[n_up, n_dn] - sigma_s E_Z/2 equals the delta
+    formulation dV_s = V_QPC + V_H[n - n_ref] + v_xc,s - v_xc[ref] on top of the parabola.
+    The unpolarised reference v_xc is the same for both spins (interp is irrelevant at zeta = 0).
+    """
+    _, v_ref, _ = exc_vxc(0.5 * ref.n_ref, 0.5 * ref.n_ref, interp)
+    return (external_potential(grid, qpc_params, include_qpc=include_qpc)
+            - hartree.potential(ref.n_ref) - v_ref)
+
+
+def build_external(grid, hartree, qpc_params, p, ref=None, include_qpc=True):
+    """V_ext for run_scf according to p.reference: "delta" (needs ref) or "full"."""
+    if p.reference == "delta":
+        if ref is None:
+            raise ValueError("reference='delta' needs the WireReference")
+        return delta_external(grid, hartree, qpc_params, ref, include_qpc, p.interp)
+    if p.reference == "full":
+        return external_potential(grid, qpc_params, include_qpc=include_qpc)
+    raise ValueError(p.reference)
 
 
 def ks_potentials(V_ext, V_H, n_up, n_dn, EZ, interp):
@@ -257,4 +335,4 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
         Xs = [Xs[0], Xs[0]]
     return SCFResult(n_up=n_in[0], n_dn=n_in[1], eigs=eigs, X=Xs, mu=mu_it, N=N_out, M=M_out,
                      iterations=it, converged=converged, params=p, residual=resid,
-                     history=history)
+                     history=history, V=[V_list[0], V_list[1]])

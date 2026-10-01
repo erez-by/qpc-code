@@ -44,68 +44,37 @@ class Hamiltonian:
 
     # ------------------------------------------------------------------ static part
     def _build_basis(self):
-        """Part A, step 3 (+ the kinetic diagonal of step 5).
-
-        TODO:
-          1. mask = self.grid.cutoff_mask(self.e_cut)
-          2. self.ix, self.iy = indices of the True entries (np.nonzero). Do this ONCE:
-             this ordering defines the coefficient vector everywhere.
-          3. self.n_pw = number of basis functions
-          4. self.kinetic = G^2/2 evaluated on the basis (pick the basis entries out of the
-             full (Nx, Ny) array with the index lists)
-        """
-
+        """Basis list (FFT-array indices inside the cutoff disc) and kinetic diagonal G^2/2."""
         mask = self.grid.cutoff_mask(self.e_cut)
-        self.ix , self.iy = np.nonzero(mask) # returns the indexes that are inside the energyt of the mask
+        self.ix, self.iy = np.nonzero(mask)      # indices of the plane waves inside the cutoff
         self.n_pw = len(self.ix)
         self.kinetic = self.grid.kinetic()[self.ix, self.iy]
 
     # ------------------------------------------------------------------ the part the SCF loop changes
     def set_potential(self, V_grid):
-        """Part A, steps 1-2: store the potential and its Fourier coefficients.
-
-        The shape check is already done. TODO: compute V_hat with the normalisation
-        1 / (Nx * Ny). Test: a constant V0 must give V_hat[0, 0] == V0 and zeros elsewhere.
-        """
+        """Store the potential and its Fourier coefficients V_hat = fft2(V) / (Nx * Ny)."""
         V_grid = np.asarray(V_grid, dtype=float)
         if V_grid.shape != (self.grid.Nx, self.grid.Ny):
             raise ValueError(
                 f"V_grid has shape {V_grid.shape}, expected {(self.grid.Nx, self.grid.Ny)}")
         self.V_grid = V_grid
-        self.V_hat = np.fft.fft2(V_grid)/(self.grid.Nx * self.grid.Ny)
-        # Test: a constant V0 must give V_hat[0, 0] == V0 and zeros elsewhere.
-        # if np.allclose(self.V_hat[1:, 1:], 0):
-        #     print("Test passed: constant potential gives correct Fourier coefficients.")
-        # else:
-        #     raise ValueError("Test failed: constant potential does not give correct Fourier coefficients.")
+        self.V_hat = np.fft.fft2(V_grid) / (self.grid.Nx * self.grid.Ny)
 
     # ------------------------------------------------------------------ dense route (tests, small problems)
     def dense(self):
-        """Part A, steps 4-5: the explicit n_pw x n_pw matrix.
+        """Explicit n_pw x n_pw matrix: H_pq = V_hat[(ix_p - ix_q) % Nx, (iy_p - iy_q) % Ny] + G_p^2/2 delta_pq.
 
-        TODO:
-          * H_pq = V_hat[(ix_p - ix_q) % Nx, (iy_p - iy_q) % Ny]. Build the whole matrix
-            with fancy indexing and broadcasting (ix[:, None] - ix[None, :]), no Python loop.
-          * add the kinetic energy on the diagonal
-          * return a complex array (the potential may not be even, so do not drop the
-            imaginary part here; eigh_dense decides)
+        The potential entry depends only on the difference of the two plane waves (Toeplitz
+        structure). Returns a complex array; eigh_dense decides whether the imaginary part matters.
         """
-        # this is the hamiltonian enterias cebuse we calcualte V by the diffrance 
+        self._require_potential()
         H_pq = self.V_hat[(self.ix[:, None] - self.ix[None, :]) % self.grid.Nx,
-                          (self.iy[:, None] - self.iy[None, :]) % self.grid.Ny] 
+                          (self.iy[:, None] - self.iy[None, :]) % self.grid.Ny]
         H_pq += np.diag(self.kinetic)
         return H_pq
 
     def eigh_dense(self, n_bands=None):
-        """Part A, step 6: eigenvalues and eigenvectors from the dense matrix.
-
-        TODO:
-          * H = self.dense()
-          * if the imaginary part is negligible (< 1e-12 relative to the largest entry), use the
-            real part and la.eigh (faster); otherwise keep it complex. Never discard it unchecked.
-          * return (w, v) sorted ascending, restricted to the lowest n_bands if given;
-            v[:, i] is the coefficient vector of state i (normalised: sum|c|^2 = 1)
-        """
+        """Eigenvalues (ascending) and eigenvectors (columns, sum|c|^2 = 1) of the dense matrix."""
         H = self.dense()
         if np.max(np.abs(H.imag)) < 1e-12 * np.max(np.abs(H)):
             w, v = la.eigh(H.real)
@@ -117,27 +86,39 @@ class Hamiltonian:
             v = v[:, :n_bands]
         return w, v
 
+    # ------------------------------------------------------------------ matrix-free route
     def _scatter(self, c):
-        """Place coefficients c (n_pw,) or (n_pw, k) on the zero-filled grid (Nx, Ny[, k])."""
+        """Place coefficients c (n_pw,) or (n_pw, k) on a zero-filled grid array (Nx, Ny[, k])."""
         c = np.asarray(c)
         C = np.zeros((self.grid.Nx, self.grid.Ny) + c.shape[1:], dtype=complex)
         C[self.ix, self.iy] = c
         return C
 
-    def to_real_space(self, c):
-        return np.fft.ifft2(self._scatter(c), axes=(0, 1)) * (self.grid.Nx * self.grid.Ny)
-
     def apply(self, c):
+        """H c without building the matrix. c: (n_pw,) or (n_pw, k); output has the same shape.
+
+        Steps: scatter -> inverse FFT (times Nx*Ny) -> multiply by V(r) -> FFT (divide by Nx*Ny)
+        -> gather the basis entries -> add the kinetic part. FFTs act on axes (0, 1) only, so a
+        block of k vectors is handled in one call.
+        """
         self._require_potential()
         c = np.asarray(c)
         N = self.grid.Nx * self.grid.Ny
         psi_r = np.fft.ifft2(self._scatter(c), axes=(0, 1)) * N
-        V = self.V_grid.reshape(self.V_grid.shape + (1,) * (c.ndim - 1))      # extra trailing axis if c is a block
+        V = self.V_grid.reshape(self.V_grid.shape + (1,) * (c.ndim - 1))      # extra axis for a block
         V_c = np.fft.fft2(V * psi_r, axes=(0, 1)) / N
         kin = self.kinetic.reshape(self.kinetic.shape + (1,) * (c.ndim - 1))
         return V_c[self.ix, self.iy] + kin * c
 
-# ------------------------------------------------------------------ helpers
+    def to_real_space(self, c):
+        """psi(r_j) = sum_p c[p] exp(i G_p . r_j) on the grid, shape (Nx, Ny[, k]).
+
+        Same scatter + inverse FFT as the first half of apply. For sum|c|^2 = 1 the cell
+        average of |psi|^2 is 1 (Parseval). Densities later: n(r) = sum_i f_i |psi_i|^2 / (Lx*Ly).
+        """
+        return np.fft.ifft2(self._scatter(c), axes=(0, 1)) * (self.grid.Nx * self.grid.Ny)
+
+    # ------------------------------------------------------------------ helpers
     def _require_potential(self):
         if self.V_hat is None:
             raise RuntimeError("call set_potential() first")

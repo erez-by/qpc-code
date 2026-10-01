@@ -1,6 +1,11 @@
 """Analysis of converged SCF states (docs/SPEC.md M5.2 / M6). Atomic units inside."""
 import numpy as np
 
+from .occupation import fermi
+from .solver import XAveragedPreconditioner
+
+_PAD = 1e5          # XAveragedPreconditioner pads its blocks with 1e6 on the diagonal
+
 
 def transverse_levels(V, ham, n_levels=1):
     """Lowest eigenvalues of the transverse operator h(x) = -(1/2) d^2/dy^2 + V(x, y) at every x.
@@ -29,3 +34,18 @@ def barrier_profile(res, ham):
 def n1d(n, grid):
     """Line density n_1D(x) = int n(x, y) dy  [a*^-1], shape (Nx,)."""
     return np.asarray(n).sum(axis=1) * grid.dy
+
+
+def wire_subbands(ham, V, mu, kT):
+    """Transverse subbands of an x-independent potential V (clean wire), one spin channel.
+
+    For x-independent V the KS states are e^{i G_x x} phi_{n,G_x}(y); the G_x blocks of
+    XAveragedPreconditioner give them exactly (column n = transverse index n, ascending).
+    Returns (bottoms, N_sub): bottoms[n] = e_n(k_x = 0) [Ha*]; N_sub[n] = sum_{G_x} f(e_n(G_x))
+    = electrons in subband n for this spin (multiply by 2 for an unpolarised wire).
+    """
+    ham.set_potential(V)
+    P = XAveragedPreconditioner(ham)
+    d = np.where(P.d > _PAD, np.inf, P.d)
+    g0 = int(np.nonzero(np.unique(ham.ix) == 0)[0][0])
+    return np.sort(d[g0]), fermi(d, mu, kT).sum(axis=0)

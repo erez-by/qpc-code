@@ -199,10 +199,19 @@ Calculations, in this order:
    The potential is x-independent, so the KS states are exactly e^{i G_x x} phi(y): the
    block-diagonal eigenpairs of `XAveragedPreconditioner` (solver.py) ARE the exact
    eigenpairs — use them (exact, milliseconds). Output: mu_wire.
-   Test/acceptance: a single subband is occupied, and mu_wire - e_0(k_x = 0) agrees with
-   k_F^2/2, k_F = pi n_1D / 2 (= 1.10 meV), within ~2 k_B T + level spacing.
-   Physics: in a uniform wire, Hartree + xc only shift/reshape the transverse problem;
-   the kinetic Fermi energy above the self-consistent subband bottom is fixed by n_1D.
+   The clean wire is the INTERACTING wire of Hirose & Wingreen (cond-mat/0106581, Eq. 1:
+   bare parabola + gated Hartree with a_image = 100 nm + TC xc, no positive background).
+   Acceptance (rewritten; the earlier "single subband, mu - e_0 = k_F^2/2 with the total n_1D"
+   was a wrong premise: at n_1D = 2.8e-2 nm^-1 the 2nd subband is already partly filled, its
+   onset is at n_1D ~ 2.6e-2 and its band edge is then pinned near mu, as in HW):
+   - SCF converged, N = 140;
+   - mu - e_0 = (pi n0 / 2)^2 / 2 with n0 = N0 / Lx from subband 0 ONLY, within
+     2 kT + level spacing (reference: 0.951 predicted vs 0.954 meV found at kT = 0.0086 meV);
+   - report the electrons in subband 1 (reference 9.8 at kT = 0.0086, 11.5 at kT = 0.05 meV).
+   `scripts/run_wire.py --scan [--kT]` tabulates N = 100..185 (tests/test_wire.py).
+   Subband-1 electrons are reflected by the QPC (n = 1 adiabatic barrier ~9 meV >> mu), so they
+   do not carry current; HMW's "only the lowest two spin subbands contribute to transport" is
+   about transport, not occupation.
 2. **QPC, unpolarised**, fixed mu = mu_wire, B = 0, start from the clean-wire density.
    Check: far from the QPC (|x| > 1.5 um) n_1D(x) -> 2.8e-2 nm^-1 within ~1 %.
 3. **QPC, spin-polarised, Janak ramp** (HMW: "first solve in a polarizing field, then reduce

@@ -1,11 +1,13 @@
-saved results/wire_ref.npz
+results/wire.npz exists and is converged; loading (use --force to recompute)
 
-=== clean wire (M5.1): non-interacting reference (delta formulation) ===
-mu_wire                       = 2.10192 meV
-subband bottoms e_n(k_x=0)    = 1.00000, 3.00001, 5.00014, 7.00127 meV
-subband spacing e_1 - e_0     = 2.00001 meV
-electrons per subband n=0,1,2 = 140.0000, 0.0000, 0.0000  (of 140.0)
-mu - e_0                      = 1.10192 meV
-k_F^2/2 (k_F = pi n_1D/2)     = 1.10003 meV
-tolerance 2 kT + level sp.    = 0.16286 meV
-ACCEPTANCE (single subband, mu - e_0 = k_F^2/2): PASS
+=== interacting clean wire (M5.1), kT = 0.05 meV, a_image = 100.0 nm ===
+converged                      : True in 13 iterations, N = 140.000000
+mu_wire                        = 8.95648 meV
+subband bottoms e_n(k_x=0)     = 8.02689, 8.98117, 10.50430, 12.16859 meV
+subband spacing e_1 - e_0      = 0.95428 meV
+e_1 - mu                       = +24.69 ueV
+electrons per subband n=0,1,2  = 128.5421, 11.4579, 0.0000
+mu - e_0 (found)               = 0.92959 meV
+(pi n0/2)^2/2, n0 = N0/Lx      = 0.92734 meV
+tolerance 2 kT + level sp.     = 0.15771 meV
+ACCEPTANCE M5.1: PASS   (subband-1 electrons: 11.458)

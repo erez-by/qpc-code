@@ -25,12 +25,10 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
    `Hartree(..., y_rule="quadratic")`: same exact kernel w(k, y), but n quadratic (central
    differences) inside each cell, error O(dy^4): 8.9e-5 at production dy. `y_rule="cell"` keeps
    the spec's rule. Public interface (`Hartree(grid, a)`, `potential`, `energy`) unchanged.
-7. **Clean wire / lead reference — resolved (user decision): delta formulation.** The lead is
-   the NON-interacting harmonic clean wire n_ref (hbar w_y = 2 meV, N = 140, kT), mu_wire =
-   2.1019 meV, mu - e_0 = 1.1019 meV (k_F^2/2 = 1.1000): single subband, M5.1 PASS. The KS
-   potential is dV_s = V_QPC + V_H[n - n_ref] + (v_xc,s[n] - v_xc[n_ref/2, n_ref/2]),
-   implemented as V_ext_eff = parabola + V_QPC - V_H[n_ref] - v_xc[ref] (`delta_external`,
-   `SCFParams.reference = "delta"`). The unpolarised reference v_xc is subtracted for both spins.
-   Diagnostic kept as `reference = "full"` / `run_wire.py --full`: the interacting wire with full
-   Hartree + xc has subband spacing 0.889 meV, the n = 1 subband at mu (14.8 of 140 electrons),
-   and mu - e_0 = 0.883 meV (notes/m5_wire_full_output.txt).
+7. **Clean wire / M5.1 — resolved (user decision).** The model is the full one (bare parabola +
+   V_QPC + V_H[n] + v_xc,s[n] + Zeeman): HMW Eq. (2) has delta V_H = V_H[rho] - V_H[rho0] with
+   rho0 the INTERACTING clean wire of HW (cond-mat/0106581, Eq. 1), so V_H[rho0] + delta V_H =
+   V_H[rho]. No reference-subtracted mode. The earlier failure (spacing 0.889 meV) came from
+   the Hartree convention bug (a = 100 nm used as metal distance; notes/m5_wire_diag_a_metal100.txt).
+   With a_image = 100 nm: spacing 0.954 meV, mu - e_0 = 0.930 meV, 11.5 electrons in subband 1
+   at kT = 0.05 meV; acceptance rewritten (subband-0 density), PASS.

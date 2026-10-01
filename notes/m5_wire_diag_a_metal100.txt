@@ -1,3 +1,10 @@
+DIAGNOSTIC (superseded): interacting clean wire computed with the Hartree CONVENTION BUG.
+Here a = 100 nm was passed to Hartree as the METAL-PLANE distance a_m (kernel 1/rho - 1/sqrt(rho^2 + 4 a_m^2),
+i.e. image charge at 200 nm). HW Eq. (1) / HMW delta V_H define a = 100 nm as the charge <-> IMAGE distance,
+so the correct metal distance is a_m = 50 nm (SCFParams.a_image_nm = 100 -> Hartree(a_m = 50 nm)).
+Result with the bug: subband spacing 0.889 meV, mu - e_0 = 0.883 meV, 14.8 electrons in subband 1.
+Corrected (notes/m5_wire_output.txt): spacing 0.954 meV, mu - e_0 = 0.930 meV, 11.5 electrons in subband 1.
+----------------------------------------------------------------------------------------------
 Hartree: kernel W (263, 35, 35) built in 1.24 s
 SCF: unpolarised, N = 140.0000, B = 0.0 T, kT = 0.05 meV, method = wire, interp = quadratic
   it   residual    mu(meV)          N          M    nb    t(s)

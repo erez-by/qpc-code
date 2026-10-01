@@ -5,6 +5,8 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
 
 ## From docs/SPEC.md
 1. Tanatar-Ceperley coefficients and energy unit (Ry*): verify against PRB 39, 5005 (1989) (M3).
+   In `qpc/xc.py` the zeta = 1 row (`TC_POL`) is marked `# UNVERIFIED`; the TC equation/table
+   number still has to go into the docstring.
 2. Spin interpolation used by HMW (`vbh` vs `quadratic`): not stated in the PRL.
 3. Gate model and distance a (image plane at 2a, a = 100 nm): not stated in the PRL.
 4. Temperature / smearing used by HMW (we use k_B T = 0.05 meV).

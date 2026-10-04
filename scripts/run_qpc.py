@@ -175,29 +175,32 @@ def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None):
     print("\n" + HEADER + "\n" + "\n".join(lines))
 
 
-def run_seed_b0(wx, table_path):
-    U, grid, ham, hart, q = setup(wx)
-    src = f"results/qpc_wx{wx}_unpol.npz"
-    unpol = SCFResult.load_npz(src)
-    p = SCFParams(B_T=0.0)
-    wire = clean_wire(ham, hart, q, p, N1D_NM * LX_NM)
+def run_seed_b0(wx, table_path, lead="interacting", interp="quadratic", maxiter=150, kT=0.05):
+    """Seeded B = 0 (Pulay, tol 1e-4): start from the converged UNPOLARISED state of the model
+    with n_up *= 1.01, n_dn *= 0.99 for |x| < 300 nm. Saves results/qpc_wx{wx}_B0_seed_{lead}_{interp}.npz."""
+    unpol, _, _, ham, hart, grid, q, _ = unpolarised_state(wx, lead, kT, verbose=False)
+    U = Units()
+    p = SCFParams(B_T=0.0, kT=kT, interp=interp, lead_reference=lead, maxiter=maxiter)
+    lead_obj, mu, V_ext = lead_state(ham, hart, q, p, N1D_NM * LX_NM)
     X, _ = physical_xy(grid)
     near = np.abs(U.au_to_nm(X)) < 300.0
     n_up = np.where(near, unpol.n_up * 1.01, unpol.n_up)
     n_dn = np.where(near, unpol.n_dn * 0.99, unpol.n_dn)
-    print(f"B = 0 from {src} with 1 % seed for |x| < 300 nm: initial M = "
-          f"{(n_up - n_dn).sum() * grid.dx * grid.dy:.4f}", flush=True)
-    out = f"results/qpc_wx{wx}_B0_seed.npz"
+    print(f"seeded B = 0, wx = {wx} meV, lead = {lead}, interp = {interp}, Pulay, maxiter = {maxiter}: "
+          f"initial M = {(n_up - n_dn).sum() * grid.dx * grid.dy:.4f}", flush=True)
+    out = f"results/qpc_wx{wx}_B0_seed_{lead}_{interp}" + ("" if kT == 0.05 else f"_kT{kT}") + ".npz"
     t1 = time.perf_counter()
-    res = run_scf(ham, hart, external_potential(grid, q), p, mu=wire.mu, n_init=(n_up, n_dn),
+    res = run_scf(ham, hart, V_ext, p, mu=mu, n_init=(n_up, n_dn),
                   checkpoint=out.replace(".npz", "_ckpt.npz"), checkpoint_every=1)
     t_run = time.perf_counter() - t1
     res.save_npz(out)
-    d = spin_summary(res, wire, ham, U)
+    d = spin_summary(res, lead_obj, ham, U)
     line = row(0.0, d, res.iterations, t_run, res.converged)
     print("\n" + HEADER + "\n" + line)
+    summarise(res, ham, U, mu, f"seeded B = 0: wx = {wx}, lead = {lead}, interp = {interp}", t_run)
     with open(table_path, "a") as fh:
-        fh.write(f"# B = 0 from unpolarised + 1 % seed, wx = {wx} meV ({time.ctime()})\n{HEADER}\n{line}\n")
+        fh.write(f"# B = 0 from unpolarised + 1 % seed, wx = {wx} meV, lead = {lead}, interp = {interp} "
+                 f"({time.ctime()})\n{HEADER}\n{line}\n")
 
 
 def main():
@@ -209,8 +212,11 @@ def main():
                       help="Janak ramp, fields in T in order (6 5 4 3 2 1 0.5 0.25 0)")
     mode.add_argument("--seed-b0", action="store_true")
     ap.add_argument("--lead", choices=["interacting", "bare"], default="interacting",
-                    help="lead reference (model A / B); --unpolarised only")
-    ap.add_argument("--kT", type=float, default=0.05, help="kT in meV; --unpolarised only")
+                    help="lead reference (model A / B)")
+    ap.add_argument("--interp", choices=["quadratic", "exchange"], default="quadratic",
+                    help="--seed-b0 only (the ramp uses the SCFParams default)")
+    ap.add_argument("--maxiter", type=int, default=150, help="--seed-b0 only")
+    ap.add_argument("--kT", type=float, default=0.05, help="kT in meV; --unpolarised / --seed-b0")
     ap.add_argument("--up-from", type=float, default=None,
                     help="with --B 7 8 9 10: ramp UP from the converged state at this field (Fig. 2)")
     ap.add_argument("--force", action="store_true")
@@ -220,7 +226,7 @@ def main():
     if args.B is not None:
         return run_ramp(args.wx, args.B, table, lead=args.lead, up_from=args.up_from)
     if args.seed_b0:
-        return run_seed_b0(args.wx, table)
+        return run_seed_b0(args.wx, table, args.lead, args.interp, args.maxiter, args.kT)
     run_unpolarised(args)
 
 

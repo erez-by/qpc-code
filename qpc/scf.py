@@ -59,6 +59,7 @@ class SCFParams:
     nb_init: int = 160               # production: avoids 3 re-diagonalisations in iteration 1
     spin_polarized: bool = True
     lead_reference: str = "interacting"   # model A (default) | "bare": model B, see lead_state
+    hartree_scale: float = 1.0       # SENSITIVITY knob: V_H -> s V_H everywhere (leads, QPC, E_H); 1 = physical
 
     def a_metal_au(self, units=Units()):
         """Metal-plane distance a_m = a_image / 2 in a* (the argument of Hartree)."""
@@ -88,11 +89,13 @@ class SCFResult:
     history: list = field(default_factory=list)   # per iteration (it, residual, mu, N, M, time)
     V: list = None               # [V_up, V_dn] KS potentials (Ha*) of the last iteration
 
-    def save_npz(self, path):
-        """Save everything (params as JSON) to an .npz file."""
+    def save_npz(self, path, extra=None, drop_X=False):
+        """Save everything (params as JSON) to an .npz file. extra: dict of additional arrays
+        (e.g. LDOS); drop_X: omit the eigenvectors (disk)."""
+        xs = {} if (drop_X or self.X is None or self.X[0] is None) else {"X_up": self.X[0], "X_dn": self.X[1]}
         np.savez_compressed(
             path, n_up=self.n_up, n_dn=self.n_dn,
-            eigs_up=self.eigs[0], eigs_dn=self.eigs[1], X_up=self.X[0], X_dn=self.X[1],
+            eigs_up=self.eigs[0], eigs_dn=self.eigs[1], **xs, **(extra or {}),
             mu=self.mu, N=self.N, M=self.M, iterations=self.iterations,
             converged=self.converged, residual=self.residual,
             history=np.array(self.history, dtype=float).reshape(-1, 6),
@@ -103,11 +106,13 @@ class SCFResult:
     def load_npz(cls, path):
         z = np.load(path, allow_pickle=False)
         return cls(n_up=z["n_up"], n_dn=z["n_dn"], eigs=[z["eigs_up"], z["eigs_dn"]],
-                   X=[z["X_up"], z["X_dn"]], mu=float(z["mu"]), N=float(z["N"]),
+                   X=[z["X_up"], z["X_dn"]] if "X_up" in z else [None, None],
+                   mu=float(z["mu"]), N=float(z["N"]),
                    M=float(z["M"]), iterations=int(z["iterations"]),
                    converged=bool(z["converged"]), residual=float(z["residual"]),
                    history=[tuple(r) for r in z["history"]],
-                   params=SCFParams(**json.loads(str(z["params"]))),
+                   params=SCFParams(**{k: v for k, v in json.loads(str(z["params"])).items()
+                                       if k in SCFParams.__dataclass_fields__}),
                    V=[z["V_up"], z["V_dn"]] if "V_up" in z else None)
 
 
@@ -209,11 +214,12 @@ def bare_reference(ham, qpc_params, p, N, nb=160):
                          subbands=[b[0] for b in bands], N_sub=[b[1] for b in bands])
 
 
-def bare_external(grid, hartree, qpc_params, ref, interp, include_qpc=True):
+def bare_external(grid, hartree, qpc_params, ref, interp, include_qpc=True, hartree_scale=1.0):
     """Model B: [V_ext_eff,up, V_ext_eff,dn] with
     V_ext_eff,s = (1/2) w_y^2 y^2 + V_QPC - V_H[n_ref,up + n_ref,dn] - v_xc,s[n_ref,up, n_ref,dn].
     The Zeeman term is added in ks_potentials as in model A."""
-    V = external_potential(grid, qpc_params, include_qpc=include_qpc) - hartree.potential(ref.n_up + ref.n_dn)
+    V = (external_potential(grid, qpc_params, include_qpc=include_qpc)
+         - hartree_scale * hartree.potential(ref.n_up + ref.n_dn))
     _, v_up, v_dn = exc_vxc(ref.n_up, ref.n_dn, interp)
     return [V - v_up, V - v_dn]
 
@@ -234,7 +240,8 @@ def lead_state(ham, hartree, qpc_params, p, N, n_init=None, include_qpc=True):
         return w, w.mu, external_potential(ham.grid, qpc_params, include_qpc=include_qpc)
     if p.lead_reference == "bare":
         r = bare_reference(ham, qpc_params, p, N)
-        return r, r.mu, bare_external(ham.grid, hartree, qpc_params, r, p.interp, include_qpc)
+        return r, r.mu, bare_external(ham.grid, hartree, qpc_params, r, p.interp, include_qpc,
+                                      p.hartree_scale)
     raise ValueError(p.lead_reference)
 
 
@@ -350,7 +357,7 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
               f"{'nb':>5} {'t(s)':>7}", flush=True)
     for it in range(1, p.maxiter + 1):
         t0 = time.perf_counter()
-        V_H = hartree.potential(n_in[0] + n_in[1])
+        V_H = p.hartree_scale * hartree.potential(n_in[0] + n_in[1])
         V_list = ks_potentials(V_ext, V_H, n_in[0], n_in[1], EZ, p.interp)
         while True:
             eigs, Xs, Xn = diagonalise(V_list, nb)

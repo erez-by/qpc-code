@@ -320,6 +320,9 @@ def run_seed_b0(wx, table_path, lead="interacting", interp="quadratic", maxiter=
 
 
 def main():
+    if "--model" in sys.argv:                     # folder-based driver (overnight runs)
+        import qpc_driver
+        return qpc_driver.main(sys.argv[1:])
     ap = argparse.ArgumentParser()
     ap.add_argument("--wx", type=float, default=1.5, help="hbar w_x in meV")
     mode = ap.add_mutually_exclusive_group(required=True)

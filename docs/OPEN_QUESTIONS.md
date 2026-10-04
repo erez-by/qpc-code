@@ -49,3 +49,9 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
    exchange: enhancement ~2, spin splitting 0.29 meV vs E_Z = 0.153 meV) and subband 1 gives 15.0
    (15.15 up, 0.11 down). The QPC moment is therefore reported as M_loc = M - M_wire(B)
    (`analysis.net_spin_local`); M_loc = M at B = 0.
+10. **Model C (sensitivity, not physics):** `SCFParams.hartree_scale = 0.8` scales V_H everywhere (leads,
+    QPC, E_H). At 0.8 the clean wire has a single subband (mu - e_0 = 1.100 meV, spacing 1.197 meV at
+    kT = 0.0086), i.e. it mimics HMW's mu - e_0(far) ~ 1.1 meV. Used only to test how the moment depends on
+    the lead screening; default 1.0 unchanged.
+11. **Grand potential (qpc/energy.py):** Omega = E - kT S - mu N with E in eigenvalue form; the eigenvalue
+    and direct forms agree to 1e-8 (tests/test_energy.py). Used for Omega_pol - Omega_unpol at B = 0 (J19).

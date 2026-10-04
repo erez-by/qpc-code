@@ -73,3 +73,22 @@ def test_acceptance_kT005():
     assert ok
     assert abs(Ns[1] / 11.5 - 1) < 0.10
     assert abs(U.au_to_meV(res.mu) - 8.9565) < 2e-3
+
+
+@pytest.mark.parametrize("scale", [0.8, 1.0])
+def test_hartree_scale_clean_wire(scale):
+    """hartree_scale (sensitivity knob): clean wire N = 140, kT = 0.0086 meV.
+    0.8 -> single subband, mu - e_0 = 1.100 +- 0.003, spacing 1.197 +- 0.01, subband 1 < 0.05 electrons;
+    1.0 -> unchanged reference (mu - e_0 = 0.9543, 9.828 electrons in subband 1)."""
+    p = SCFParams(spin_polarized=False, method="wire", kT=0.0086, tol=1e-6, hartree_scale=scale)
+    grid, ham, hart, V_ext = setup(p, U)
+    res, b, Ns = clean_wire_unpolarised(ham, hart, V_ext, p, 140.0, verbose=False)
+    assert res.converged
+    meV = U.au_to_meV
+    if scale == 0.8:
+        assert abs(meV(res.mu - b[0]) - 1.100) < 0.003
+        assert abs(meV(b[1] - b[0]) - 1.197) < 0.01
+        assert Ns[1] < 0.05
+    else:
+        assert abs(meV(res.mu - b[0]) - 0.9543) < 2e-4
+        assert abs(Ns[1] - 9.828) < 0.01

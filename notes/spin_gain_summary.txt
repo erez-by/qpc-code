@@ -1,0 +1,18 @@
+Spin linear-response gain at B = 0 (scripts/spin_gain.py): seed n_up*1.01, n_dn*0.99 for |x|<300 nm on the
+converged unpolarised state, linear mixing alpha = 0.2, 40 iterations, kT = 0.05 meV, a_image = 100 nm.
+lambda5 = 1 + (mean of last 5 r - 1)/alpha; lambda2 from the two-step ratio sqrt(M_41/M_39) (removes the
+period-2 alternation seen in model A). "change" = two-step ratio at n = 40 minus at n = 18 (> 0: still rising).
+
+ wx   model  interp     r_40    r40-r20  lambda5  2-step  lambda2  change   seeded Pulay B=0 (tol 1e-4, maxiter 150)
+ 1.5  A      quadratic  0.9463  -0.0156  0.710    0.9416  0.708    +0.017   M -> 0.0013, conv. 53 it (M=0 branch)
+ 1.5  A      exchange   0.9846  -0.0299  0.892    0.9771  0.886    +0.017   M -> -0.0001 (|M|<3e-4 from it 90), NOT conv.: residual stalls 2.6e-4
+ 1.5  B      quadratic  0.9359  +0.0390  0.661    0.9350  0.675    +0.041   M -> 0.0000, conv. 21 it
+ 1.5  B      exchange   0.9723  +0.0528  0.839    0.9713  0.856    +0.056   M -> -0.0001, conv. 49 it
+ 1.0  A      exchange   0.9706  -0.0297  0.9995   1.0072  1.036    +0.042   (not run; step 2 was for wx = 1.5)
+ 1.0  B      exchange   0.9522  +0.0342  0.744    0.9514  0.757    +0.036   (not run)
+
+Unpolarised B = 0 states (fixed mu of the leads):
+ wx 1.5 A: n_1D(0) 0.012061, top-far 0.7094, mu-top +0.2202 meV, N 138.419, 30 it
+ wx 1.5 B: n_1D(0) 0.017085, top-far 0.6344, mu-top +0.4676 meV, N 139.086, 16 it
+ wx 1.0 A: n_1D(0) 0.013818, top-far 0.6282, mu-top +0.3014 meV, N 137.585, 30 it
+ wx 1.0 B: n_1D(0) 0.018419, top-far 0.5785, mu-top +0.5235 meV, 16 it

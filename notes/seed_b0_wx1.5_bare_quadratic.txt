@@ -1,0 +1,48 @@
+Hartree: kernel W (263, 35, 35) built in 0.92 s
+leads (bare): mu = 2.10192 meV (0.2 s)
+results/qpc_wx1.5_unpol_bare.npz exists and is converged; loading (use --force to recompute)
+seeded B = 0, wx = 1.5 meV, lead = bare, interp = quadratic, Pulay, maxiter = 150: initial M = 0.1587
+SCF: spin-polarised, mu = 2.1019 meV, B = 0.0 T, kT = 0.05 meV, method = dense, interp = quadratic
+  it   residual    mu(meV)          N          M    nb    t(s)
+   1  1.046e-01    2.10192   139.0852    0.05562   160    4.74
+   2  8.992e-02    2.10192   139.0856    0.04920   160    4.79
+   3  1.598e-02    2.10192   139.0844    0.00763   160    5.38
+   4  1.158e-02    2.10192   139.0873    0.00628   160    4.34
+   5  3.295e-03    2.10192   139.0858    0.00334   160    5.97
+   6  3.014e-03    2.10192   139.0852    0.00298   160    3.97
+   7  1.657e-03    2.10192   139.0856    0.00180   160    5.35
+   8  1.220e-03    2.10192   139.0855    0.00114   160    4.08
+   9  9.841e-04    2.10192   139.0855    0.00098   160    4.85
+  10  7.510e-04    2.10192   139.0854    0.00084   160    4.11
+  11  5.756e-04    2.10192   139.0855    0.00066   160    5.84
+  12  5.260e-04    2.10192   139.0855    0.00058   160    5.22
+  13  4.456e-04    2.10192   139.0855    0.00048   160    6.49
+  14  3.946e-04    2.10192   139.0855    0.00034   160    4.48
+  15  3.811e-04    2.10192   139.0854    0.00027   160    4.50
+  16  3.236e-04    2.10192   139.0855    0.00016   160    4.09
+  17  2.429e-04    2.10192   139.0854    0.00005   160    4.35
+  18  1.843e-04    2.10192   139.0855   -0.00000   160    5.11
+  19  1.540e-04    2.10192   139.0855   -0.00002   160    4.70
+  20  1.173e-04    2.10192   139.0855   -0.00003   160    4.34
+  21  8.801e-05    2.10192   139.0855   -0.00003   160    4.78
+SCF converged after 21 iterations, 101.7 s
+
+ B[T]    M_loc M_win300         M   M_wire   it    t[s]         N   nup_far   ndn_far  top_up  top_dn mu-top_up mu-top_dn  conv
+    0  -0.0000  -0.0000   -0.0000   0.0000   21   101.7  139.0855  0.014000  0.014000  0.6344  0.6344   +0.4676   +0.4676  True
+
+=== seeded B = 0: wx = 1.5, lead = bare, interp = quadratic ===
+mu (leads, N=140)             : 2.10192 meV
+converged                     : True in 21 iterations, 101.7 s
+time per iteration            : mean 4.83 s, max 6.49 s
+N                             : 139.0855
+M = N_up - N_dn               : -0.00003
+far-field n_1D (|x|>1.5um)    : 0.028000 nm^-1  (max dev 0.001 %)
+n_1D(x = 0)                   : 0.017084 nm^-1
+[up] e_0(far)                 : 0.99998 meV
+[up] barrier top - e_0(far)   : 0.63438 meV  (top at x = 0.0 nm; e_0(0) - e_0(far) = 0.63438; bare 3.0)
+[up] mu - e_0(far)            : 1.10194 meV
+[up] mu - barrier top         : +0.46756 meV
+[dn] e_0(far)                 : 0.99998 meV
+[dn] barrier top - e_0(far)   : 0.63436 meV  (top at x = 0.0 nm; e_0(0) - e_0(far) = 0.63436; bare 3.0)
+[dn] mu - e_0(far)            : 1.10194 meV
+[dn] mu - barrier top         : +0.46758 meV

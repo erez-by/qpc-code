@@ -1,4 +1,4 @@
-# Overnight summary (2026-10-04 23:48)
+# Overnight summary (2026-10-04 23:50)
 
 Columns: M_loc (local moment), M_win (|x|<300 nm), zeta0 = spin polarisation of n_1D at x = 0, n1d0 [1e-2 nm^-1], barrier heights in meV above e_0(far) as height@x(nm), e0up(0) = spin-up value at x = 0, D_dn = top_dn - top_unpol, D_up0 = e0up(0) - top_unpol, LDOS (eta 0.05/0.1 mean): resonance e - mu, Gamma = FWHM_fit - 2 eta, U (HMW definition), all meV.
 
@@ -78,6 +78,21 @@ unpolarised B = 0: top 0.578 meV, n1d0 1.842, mu - e0(far) 1.102, converged True
 | 4 | y | 39 | 0.114 | 0.098 | 0.48 | 1.865 | 0.15@-133 0.61@-48 0.61@+48 0.15@+133 | 0.190 | 0.31@-86 0.96@+0 0.31@+86 | +0.382 | -0.388 | 1.153 | -0.580 | 0.297 | 0.359 |
 | 6 | y | 44 | 0.448 | 0.445 | 0.48 | 1.813 | 0.44@-57 0.44@+57 | 0.155 | 0.89@+0 | +0.307 | -0.424 | 1.180 | -0.747 | 0.221 | 0.339 |
 
+## C_exch_wx1.0
+
+unpolarised B = 0: top 0.783 meV, n1d0 1.331, mu - e0(far) 1.072, converged True (20 it)
+
+
+## C_exch_wx1.5
+
+unpolarised B = 0: top 0.899 meV, n1d0 1.110, mu - e0(far) 1.072, converged True (18 it)
+
+
+## C_exch_wx2.0
+
+unpolarised B = 0: top 1.074 meV, n1d0 0.926, mu - e0(far) 1.072, converged True (18 it)
+
+
 ## B = 0 of every folder vs PRL targets
 
 | folder | conv | M_loc | zeta0 | n1d0 | up peaks | e0up(0) | dn peaks | D_dn | D_up0 | mu-e0far | res-mu | Gamma | U |
@@ -103,6 +118,9 @@ PRL targets (user's readings, polarised, B = 0):
 | A_exch_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
 | A_quad_wx1.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
 | B_exch_wx1.0 | 2.1019 | 2.000 | 1.102 | 0.00 | 1.0 |
+| C_exch_wx1.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
+| C_exch_wx1.5 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
+| C_exch_wx2.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
 
 ## Spin gain (B = 0, linear mixing, 1 % seed)
 ```

@@ -16,7 +16,7 @@ def smooth_densities(seed, shape=(40, 30)):
     return field(), 0.6 * field()
 
 
-@pytest.mark.parametrize("interp", ["exchange", "quadratic", "mixed:0.5"])
+@pytest.mark.parametrize("interp", ["exchange", "quadratic", "mixed:0.5", "power:1.3333333333333333", "power:1.2"])
 @pytest.mark.parametrize("spin", [0, 1])
 def test_functional_derivative(interp, spin):
     """(i) [E(n + h dn_s) - E(n - h dn_s)]/2h == sum v_s dn_s dA, rel 1e-6."""
@@ -137,3 +137,13 @@ def test_mixed_interpolation():
             np.testing.assert_allclose(a, w * b + (1 - w) * c, rtol=1e-13, atol=1e-15)
     with pytest.raises(ValueError):
         exc_vxc(n_up, n_dn, "mixed:1.5")
+
+
+def test_power_family_limits():
+    """power:2 == quadratic and power:1.5 == exchange (eps and both potentials, 1e-12)."""
+    n_up, n_dn = smooth_densities(13)
+    for pstr, ref in (("power:2", "quadratic"), ("power:1.5", "exchange")):
+        for a, b in zip(exc_vxc(n_up, n_dn, pstr), exc_vxc(n_up, n_dn, ref)):
+            np.testing.assert_allclose(a, b, rtol=1e-12, atol=1e-15)
+    with pytest.raises(ValueError):
+        exc_vxc(n_up, n_dn, "power:2.5")

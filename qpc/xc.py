@@ -62,9 +62,19 @@ def spin_interp(zeta, interp):
                    exchange-like interpolation (copies the zeta-dependence of the exact 2D
                    exchange); Koskinen, Manninen & Reimann, PRL 79, 1389 (1997).
                    "vbh" is a deprecated alias (earlier mislabel).
+      "power:p":   f_p = ((1+z)^p + (1-z)^p - 2)/(2^p - 2), 1 < p <= 2; p = 2 is "quadratic",
+                   p = 3/2 is "exchange". Spin-stiffness knob: f_p''(0)/2 = p(p-1)/(2^p - 2) = 1,
+                   0.905, 0.855 for p = 2, 3/2, 4/3.
       "mixed:w":   f = w f_exchange + (1 - w) z^2, 0 <= w <= 1 (e.g. "mixed:0.5"); interpolates
                    between the two (sensitivity study).
     """
+    if isinstance(interp, str) and interp.startswith("power:"):
+        pw = float(interp.split(":", 1)[1])
+        if not 1.0 < pw <= 2.0:
+            raise ValueError(f"power p = {pw} not in (1, 2]")
+        c = 2.0 ** pw - 2.0
+        a_, b_ = 1.0 + zeta, 1.0 - zeta
+        return (a_ ** pw + b_ ** pw - 2.0) / c, pw * (a_ ** (pw - 1) - b_ ** (pw - 1)) / c
     if isinstance(interp, str) and interp.startswith("mixed:"):
         w = float(interp.split(":", 1)[1])
         if not 0.0 <= w <= 1.0:

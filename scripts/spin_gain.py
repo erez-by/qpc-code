@@ -44,7 +44,7 @@ def spin_gain(wx, interp, lead, kT=0.05, n_it=40, out=print):
     dA = grid.dx * grid.dy
     M_in, M_out = [], []
 
-    def cb(it, m_in, m_out, n_in, n_out):
+    def cb(it, m_in, m_out, n_in, n_out, *_):
         M_in.append(m_in)
         M_out.append(m_out)
         out(f"{it:4d}  M_in = {m_in:.6e}  M_out = {m_out:.6e}"

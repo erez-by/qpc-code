@@ -148,6 +148,8 @@ def model_tag(lead, interp):
         suf = ""
     elif interp == "quadratic":
         suf = "_quad"
+    elif interp.startswith("power:"):
+        suf = "_power" + interp.split(":", 1)[1]
     elif interp.startswith("mixed:"):
         suf = "_mixed" + interp.split(":", 1)[1]
     else:

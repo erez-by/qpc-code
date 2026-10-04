@@ -224,7 +224,11 @@ def lead_state(ham, hartree, qpc_params, p, N, n_init=None, include_qpc=True):
     "interacting" (model A, default): interacting clean wire (clean_wire), V_ext = parabola + V_QPC.
     "bare" (model B): non-interacting reference (bare_reference), V_ext = bare_external.
     Returns (lead, mu, V_ext); lead has n_up, n_dn, M (for net_spin_local / starting densities).
+    The leads are always solved with the DEFAULT mixing / maxiter / tol (only model, interp, kT,
+    B and the physical parameters of p are used), so special QPC settings never leak into them.
     """
+    d = SCFParams()
+    p = dataclasses.replace(p, alpha=d.alpha, history=d.history, maxiter=d.maxiter, tol=d.tol)
     if p.lead_reference == "interacting":
         w = clean_wire(ham, hartree, qpc_params, p, N, n_init=n_init)
         return w, w.mu, external_potential(ham.grid, qpc_params, include_qpc=include_qpc)
@@ -291,8 +295,8 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
     """Kohn-Sham SCF at fixed mu (Ha*) or fixed N (electrons). Returns SCFResult.
 
     V_ext: one array or [V_ext,up, V_ext,dn]. stop=False: run all p.maxiter iterations without
-    the convergence stop (linear-response measurements). callback(it, M_in, M_out, n_in, n_out)
-    is called every iteration before mixing.
+    the convergence stop (linear-response measurements). callback(it, M_in, M_out, n_in, n_out,
+    eigs, mu) is called every iteration before mixing (eigs: list per spin channel, Ha*).
 
     n_init: (n_up, n_dn) start densities [a*^-2] (default: non-interacting V_ext states);
     X_init: [X_up, X_dn] start blocks for LOBPCG warm starts. checkpoint: path; every
@@ -373,7 +377,7 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
             print(f"{it:4d} {resid:10.3e} {meV(mu_it):10.5f} {N_out:10.4f} {M_out:10.5f} "
                   f"{nb:5d} {dt:7.2f}", flush=True)
         if callback is not None:
-            callback(it, M_in, M_out, n_in, n_out)
+            callback(it, M_in, M_out, n_in, n_out, eigs, mu_it)
         if stop and resid < p.tol and abs(M_out - M_in) < p.tol:
             converged = True
             n_in = n_out

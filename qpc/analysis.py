@@ -74,3 +74,18 @@ def net_spin_local(res, wire_res, grid):
     This is the number to compare with HMW (0.85, 0.93, 0.90). wire_res: SCFResult or CleanWire."""
     w = getattr(wire_res, "res", wire_res)
     return net_spin(res, grid) - net_spin(w, grid)
+
+
+def net_spin_window(res, wire_res, grid, x_half_nm=300.0, units=None):
+    """Window moment M_win = int_{|x| < x_half} (n_up - n_dn) dx dy  minus the same window
+    integral of the clean wire at the same B (removes the lead polarisation inside the window).
+    x_half_nm in nm; physical x = min_image(j dx, Lx). wire_res: SCFResult, CleanWire or
+    BareReference."""
+    from .fourier import min_image
+    from .units import Units
+    U = units or Units()
+    x = min_image(grid.real_axes()[0], grid.Lx)
+    win = np.abs(U.au_to_nm(x)) < x_half_nm
+    w = getattr(wire_res, "res", wire_res)
+    dA = grid.dx * grid.dy
+    return float(((res.n_up - res.n_dn)[win]).sum() * dA - ((w.n_up - w.n_dn)[win]).sum() * dA)

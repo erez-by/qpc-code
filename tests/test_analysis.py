@@ -47,3 +47,21 @@ def test_transverse_levels_bare_qpc_top():
     assert abs(e0[grid.Nx // 2] - 1.0) < 1e-4
     # the KS cutoff basis is coarser at the stiff x = 0 point
     assert U.au_to_meV(transverse_levels(V, ham, basis="cutoff")[0, 0]) > e0[0] + 5e-3
+
+
+def test_net_spin_window():
+    """Window moment: localised spin blob inside the window counted fully; a uniform lead
+    polarisation identical to the wire's cancels; a blob outside is ignored."""
+    from types import SimpleNamespace
+    from qpc.analysis import net_spin_window
+    from qpc.scf import physical_xy
+    grid = grid_from_cutoff(U.nm_to_au(5000.0), U.nm_to_au(320.0), U.meV_to_au(15.0))
+    X, Y = physical_xy(grid)
+    dA = grid.dx * grid.dy
+    lead = 1e-3 * np.exp(-Y ** 2 / 4.0)
+    blob = np.exp(-(X ** 2 + Y ** 2) / (2 * 3.0 ** 2))
+    blob /= blob.sum() * dA                                           # one electron at x = 0
+    far = np.roll(blob, grid.Nx // 2, axis=0)                         # same blob at x = Lx/2
+    wire = SimpleNamespace(n_up=lead * 1.2, n_dn=lead * 0.8)
+    res = SimpleNamespace(n_up=lead * 1.2 + 0.5 * blob + 0.5 * far, n_dn=lead * 0.8 - 0.5 * blob)
+    assert abs(net_spin_window(res, wire, grid) - 1.0) < 1e-6

@@ -15,4 +15,4 @@ Unpolarised B = 0 states (fixed mu of the leads):
  wx 1.5 A: n_1D(0) 0.012061, top-far 0.7094, mu-top +0.2202 meV, N 138.419, 30 it
  wx 1.5 B: n_1D(0) 0.017085, top-far 0.6344, mu-top +0.4676 meV, N 139.086, 16 it
  wx 1.0 A: n_1D(0) 0.013818, top-far 0.6282, mu-top +0.3014 meV, N 137.585, 30 it
- wx 1.0 B: n_1D(0) 0.018419, top-far 0.5785, mu-top +0.5235 meV, 16 it
+ wx 1.0 B: n_1D(0) 0.018419, top-far 0.5785, mu-top +0.5235 meV, N 138.624, 16 it

@@ -89,3 +89,58 @@ def net_spin_window(res, wire_res, grid, x_half_nm=300.0, units=None):
     w = getattr(wire_res, "res", wire_res)
     dA = grid.dx * grid.dy
     return float(((res.n_up - res.n_dn)[win]).sum() * dA - ((w.n_up - w.n_dn)[win]).sum() * dA)
+
+
+def barrier_features(res, ham, far_nm=1500.0, min_height_meV=0.1, units=None):
+    """Barrier shape and centre densities of a converged state (all at grid points, no windows).
+
+    Per spin s, from the barrier profile e_0,s(x) (barrier_profile, full y grid):
+      e0_far[s]   mean of e_0,s over |x| > far_nm                         [meV]
+      peaks[s]    list of (x_peak [nm], height [meV above e0_far]) of ALL local maxima with
+                  height > min_height_meV (periodic neighbours; a flat top counts once)
+      centre[s]   e_0,s(0) - e0_far[s]  (dip depth when there are two peaks)     [meV]
+      mu_e0far[s] mu - e0_far[s]                                              [meV]
+    and n1d_0 (total), n1d_0_s = (n_up(0), n_dn(0)): line densities at x = 0   [nm^-1].
+    """
+    from .fourier import min_image
+    from .units import Units
+    U = units or Units()
+    g = ham.grid
+    meV = U.au_to_meV
+    x_nm = U.au_to_nm(min_image(g.real_axes()[0], g.Lx))
+    far = np.abs(x_nm) > far_nm
+    e0 = barrier_profile(res, ham)
+    out = dict(e0_far=[], peaks=[], centre=[], mu_e0far=[])
+    for s in range(2):
+        e = meV(e0[:, s])
+        ef = e[far].mean()
+        h = e - ef
+        left, right = np.roll(h, 1), np.roll(h, -1)
+        is_max = (h > left) & (h >= right) & (h > min_height_meV)
+        idx = np.nonzero(is_max)[0]
+        idx = idx[np.argsort(x_nm[idx])]
+        out["e0_far"].append(ef)
+        out["peaks"].append([(float(x_nm[i]), float(h[i])) for i in idx])
+        out["centre"].append(float(h[0]))
+        out["mu_e0far"].append(float(meV(res.mu) - ef))
+    l_up = n1d(res.n_up, g)[0] / U.length_nm
+    l_dn = n1d(res.n_dn, g)[0] / U.length_nm
+    out["n1d_0"] = float(l_up + l_dn)
+    out["n1d_0_s"] = (float(l_up), float(l_dn))
+    return out
+
+
+def format_features(f, targets=None):
+    """Multi-line text block of barrier_features, with optional HMW target comments."""
+    t = targets or {}
+    lines = []
+    for s, name in enumerate(("up", "dn")):
+        pk = ", ".join(f"x={x:+.1f} nm h={h:.4f}" for x, h in f["peaks"][s]) or "none > 0.1 meV"
+        lines.append(f"  [{name}] peaks: {pk}" + (f"   # HMW: {t['peaks_' + name]}" if 'peaks_' + name in t else ""))
+        lines.append(f"  [{name}] e_0(0)-e_0(far) = {f['centre'][s]:.4f} meV"
+                     + (f"   # HMW: {t['centre_' + name]}" if 'centre_' + name in t else "")
+                     + f";  mu - e_0(far) = {f['mu_e0far'][s]:.4f} meV"
+                     + (f"   # HMW: {t['mu_e0far']}" if 'mu_e0far' in t else ""))
+    lines.append(f"  n_1D(0) = {f['n1d_0']:.6f} nm^-1 (up {f['n1d_0_s'][0]:.6f}, dn {f['n1d_0_s'][1]:.6f})"
+                 + (f"   # HMW: {t['n1d_0']}" if 'n1d_0' in t else ""))
+    return "\n".join(lines)

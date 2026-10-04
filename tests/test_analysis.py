@@ -65,3 +65,25 @@ def test_net_spin_window():
     wire = SimpleNamespace(n_up=lead * 1.2, n_dn=lead * 0.8)
     res = SimpleNamespace(n_up=lead * 1.2 + 0.5 * blob + 0.5 * far, n_dn=lead * 0.8 - 0.5 * blob)
     assert abs(net_spin_window(res, wire, grid) - 1.0) < 1e-6
+
+
+def test_barrier_features_two_peaks():
+    """Synthetic potential with a double-humped barrier: both peaks, the dip and the far level found."""
+    from types import SimpleNamespace
+    from qpc.analysis import barrier_features
+    from qpc.scf import physical_xy
+    grid = grid_from_cutoff(U.nm_to_au(5000.0), U.nm_to_au(320.0), U.meV_to_au(15.0))
+    ham = Hamiltonian(grid, U.meV_to_au(15.0))
+    X, Y = physical_xy(grid)
+    x_nm = U.au_to_nm(X)
+    bump = lambda x0: np.exp(-(x_nm - x0) ** 2 / (2 * 30.0 ** 2))
+    V = external_potential(grid, QPCParams(), include_qpc=False) + U.meV_to_au(0.6) * (bump(80) + bump(-80))
+    res = SimpleNamespace(V=[V, V], n_up=np.zeros_like(V), n_dn=np.zeros_like(V), mu=U.meV_to_au(2.1))
+    f = barrier_features(res, ham)
+    for s in range(2):
+        assert len(f["peaks"][s]) == 2
+        (x1, h1), (x2, h2) = f["peaks"][s]
+        assert abs(x1 + 80) < 10 and abs(x2 - 80) < 10
+        assert abs(h1 - 0.6) < 0.03 and abs(h2 - 0.6) < 0.03
+        assert 0.0 < f["centre"][s] < 0.2
+        assert abs(f["e0_far"][s] - 1.0) < 1e-3 and abs(f["mu_e0far"][s] - 1.1) < 1e-3

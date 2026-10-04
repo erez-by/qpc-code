@@ -30,7 +30,8 @@ import time
 import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from qpc.analysis import barrier_profile, n1d, net_spin_local, net_spin_window  # noqa: E402
+from qpc.analysis import (barrier_features, barrier_profile, format_features, n1d,  # noqa: E402
+                          net_spin_local, net_spin_window)
 from qpc.fourier import min_image                                 # noqa: E402
 from qpc.grid import grid_from_cutoff                             # noqa: E402
 from qpc.hamiltonian import Hamiltonian                           # noqa: E402
@@ -115,34 +116,63 @@ def row(B, d, it, t, conv):
             f"{d['mu_top_up']:+9.4f} {d['mu_top_dn']:+9.4f} {str(conv):>5}")
 
 
-def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None):
+# HMW targets (user's readings of PRL Fig. 1(a),(d); polarised state, B = 0, hbar w_x = 1.0 meV)
+HMW_TARGETS = {1.0: dict(
+    peaks_up="two peaks at x ~ +-80 nm, ~0.6 meV (nearly flat top over ~160 nm)",
+    centre_up="~0.45 meV (shallow dip ~0.15 meV)",
+    peaks_dn="one peak ~1.2 meV (just above mu)",
+    mu_e0far="~1.1 meV",
+    n1d_0="~1.5e-2 nm^-1 total",
+    M_loc="~0.85",
+    ldos="spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV")}
+
+
+def model_tag(lead, interp):
+    """'A' / 'B' (+ '_quadratic' when not the exchange interpolation)."""
+    return ("A" if lead == "interacting" else "B") + ("" if interp == "exchange" else f"_{interp}")
+
+
+def qpc_path(wx, lead, interp, B, suffix=""):
+    return f"results/qpc_wx{wx}_{model_tag(lead, interp)}_B{bstr(B)}{suffix}.npz"
+
+
+def print_features(res, ham, U, d, wx, B):
+    f = barrier_features(res, ham, units=U)
+    t = HMW_TARGETS.get(wx, {}) if B == 0 else {}
+    print(f"  M = {d['M']:.4f}, M_loc = {d['M_loc']:.4f}" + (f"   # HMW: {t['M_loc']}" if t else "")
+          + f", M_win300 = {d['M_win']:.4f}", flush=True)
+    print(format_features(f, t), flush=True)
+    return f
+
+
+def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None, interp="quadratic"):
     """Janak ramp (docs/SPEC.md M5.3): B_list in order, e.g. 6 5 4 3 2 1 0.5 0.25 0; the first
     QPC state starts from the lead densities at that field, each next one from the previous
     converged state. up_from = B0: Fig. 2 states ramped UP from the converged B0 state (NOT part
     of the Janak protocol; labelled as such)."""
     U, grid, ham, hart, q = setup(wx)
     N = N1D_NM * LX_NM
-    tag = "" if lead == "interacting" else "_bare"
     prev, wire_prev = None, None
     label = "Janak ramp (down)"
     if up_from is not None:
-        prev = SCFResult.load_npz(f"results/qpc_wx{wx}{tag}_B{bstr(up_from)}.npz")
+        prev = SCFResult.load_npz(qpc_path(wx, lead, interp, up_from))
         if not prev.converged:
             raise RuntimeError(f"B = {up_from} T start state not converged")
         label = f"ramp-UP from the converged {up_from:g} T state (Fig. 2 states, NOT Janak)"
-    print(f"{label}: wx = {wx} meV, lead = {lead}, B = {list(B_list)}", flush=True)
-    lines = []
+    print(f"{label}: wx = {wx} meV, lead = {lead} (model {model_tag(lead, interp)}), interp = {interp}, "
+          f"B = {list(B_list)}", flush=True)
+    lines, feats = [], []
     for B in B_list:
-        p = SCFParams(B_T=B, lead_reference=lead)
+        p = SCFParams(B_T=B, lead_reference=lead, interp=interp)
         t0 = time.perf_counter()
         wire_init = None if wire_prev is None else (wire_prev.n_up, wire_prev.n_dn)
         wire, mu_lead, V_ext = lead_state(ham, hart, q, p, N, n_init=wire_init)
         if lead == "interacting":
-            wire.res.save_npz(f"results/wire_B{bstr(B)}.npz")
+            wire.res.save_npz(f"results/wire_{interp}_B{bstr(B)}.npz")
         print(f"\n##### B = {B:g} T: leads ({lead}) mu = {U.au_to_meV(mu_lead):.5f} meV, "
               f"M_wire = {wire.M:.4f} ({time.perf_counter() - t0:.1f} s)", flush=True)
         wire_prev = wire
-        out = f"results/qpc_wx{wx}{tag}_B{bstr(B)}.npz"
+        out = qpc_path(wx, lead, interp, B)
         ckpt = out.replace(".npz", "_ckpt.npz")
         if os.path.exists(out) and SCFResult.load_npz(out).converged:
             res = SCFResult.load_npz(out)
@@ -166,6 +196,7 @@ def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None):
         d = spin_summary(res, wire, ham, U)
         print(HEADER + "\n" + row(B, d, res.iterations, t_run, res.converged), flush=True)
         lines.append(row(B, d, res.iterations, t_run, res.converged))
+        feats.append((B, d, print_features(res, ham, U, d, wx, B)))
         if not res.converged:
             print(f"WARNING: B = {B:g} not converged; continuing from it", flush=True)
         prev = res
@@ -173,6 +204,42 @@ def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None):
         fh.write(f"# {label}, wx = {wx} meV, lead = {lead}, B = {list(B_list)}  ({time.ctime()})\n{HEADER}\n"
                  + "\n".join(lines) + "\n")
     print("\n" + HEADER + "\n" + "\n".join(lines))
+    two = [B for B, d, f in feats if len(f["peaks"][0]) >= 2]
+    below = [B for B, d, f in feats if d["M_loc"] < 0.1]
+    print(f"\nlargest B with two spin-up barrier peaks: {max(two) if two else 'none'} T;  "
+          f"largest B with M_loc < 0.1: {max(below) if below else 'none'} T "
+          f"(B values in ramp order: {[ (B, round(d['M_loc'], 4)) for B, d, f in feats ]})", flush=True)
+
+
+def run_large_seed(wx, table_path, lead, interp, maxiter=200, kT=0.05, sigma_nm=60.0, M0=1.0):
+    """Large-seed coexistence test at B = 0 (Pulay, tol 1e-4): from the unpolarised state,
+    n_up *= (1 + s f(x)), n_dn *= (1 - s f(x)), f = exp(-x^2 / (2 sigma^2)), s such that M_init = M0."""
+    unpol, _, _, ham, hart, grid, q, _ = unpolarised_state(wx, lead, kT, verbose=False)
+    U = Units()
+    p = SCFParams(B_T=0.0, kT=kT, interp=interp, lead_reference=lead, maxiter=maxiter)
+    lead_obj, mu, V_ext = lead_state(ham, hart, q, p, N1D_NM * LX_NM)
+    X, _ = physical_xy(grid)
+    f = np.exp(-U.au_to_nm(X) ** 2 / (2 * sigma_nm ** 2))
+    dA = grid.dx * grid.dy
+    s = M0 / float((f * (unpol.n_up + unpol.n_dn)).sum() * dA)
+    if s * f.max() >= 1:
+        raise ValueError(f"seed amplitude s = {s:.3f} would make n_dn negative")
+    n_up, n_dn = unpol.n_up * (1 + s * f), unpol.n_dn * (1 - s * f)
+    print(f"large-seed B = 0: wx = {wx}, model {model_tag(lead, interp)}, sigma = {sigma_nm} nm, s = {s:.4f}, "
+          f"initial M = {(n_up - n_dn).sum() * dA:.4f}, Pulay, maxiter = {maxiter}", flush=True)
+    out = qpc_path(wx, lead, interp, 0.0, "_largeseed")
+    t1 = time.perf_counter()
+    res = run_scf(ham, hart, V_ext, p, mu=mu, n_init=(n_up, n_dn),
+                  checkpoint=out.replace(".npz", "_ckpt.npz"), checkpoint_every=1)
+    t_run = time.perf_counter() - t1
+    res.save_npz(out)
+    d = spin_summary(res, lead_obj, ham, U)
+    line = row(0.0, d, res.iterations, t_run, res.converged)
+    print("\n" + HEADER + "\n" + line)
+    print_features(res, ham, U, d, wx, 0.0)
+    with open(table_path, "a") as fh:
+        fh.write(f"# large seed (M0 = {M0}, sigma = {sigma_nm} nm) B = 0, wx = {wx}, model "
+                 f"{model_tag(lead, interp)} ({time.ctime()})\n{HEADER}\n{line}\n")
 
 
 def run_seed_b0(wx, table_path, lead="interacting", interp="quadratic", maxiter=150, kT=0.05):
@@ -211,11 +278,12 @@ def main():
     mode.add_argument("--B", type=float, nargs="+",
                       help="Janak ramp, fields in T in order (6 5 4 3 2 1 0.5 0.25 0)")
     mode.add_argument("--seed-b0", action="store_true")
+    mode.add_argument("--large-seed", action="store_true", help="B = 0, Gaussian seed with M_init = 1")
     ap.add_argument("--lead", choices=["interacting", "bare"], default="interacting",
                     help="lead reference (model A / B)")
-    ap.add_argument("--interp", choices=["quadratic", "exchange"], default="quadratic",
-                    help="--seed-b0 only (the ramp uses the SCFParams default)")
-    ap.add_argument("--maxiter", type=int, default=150, help="--seed-b0 only")
+    ap.add_argument("--interp", choices=["quadratic", "exchange"], default=None,
+                    help="default: SCFParams default (quadratic)")
+    ap.add_argument("--maxiter", type=int, default=None, help="--seed-b0 (150) / --large-seed (200)")
     ap.add_argument("--kT", type=float, default=0.05, help="kT in meV; --unpolarised / --seed-b0")
     ap.add_argument("--up-from", type=float, default=None,
                     help="with --B 7 8 9 10: ramp UP from the converged state at this field (Fig. 2)")
@@ -224,9 +292,13 @@ def main():
     os.makedirs("results", exist_ok=True)
     table = f"results/ramp_wx{args.wx}.txt"
     if args.B is not None:
-        return run_ramp(args.wx, args.B, table, lead=args.lead, up_from=args.up_from)
+        return run_ramp(args.wx, args.B, table, lead=args.lead, up_from=args.up_from,
+                        interp=args.interp or SCFParams().interp)
+    if args.large_seed:
+        return run_large_seed(args.wx, table, args.lead, args.interp or SCFParams().interp,
+                              args.maxiter or 200, args.kT)
     if args.seed_b0:
-        return run_seed_b0(args.wx, table, args.lead, args.interp, args.maxiter, args.kT)
+        return run_seed_b0(args.wx, table, args.lead, args.interp or "quadratic", args.maxiter or 150, args.kT)
     run_unpolarised(args)
 
 

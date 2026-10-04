@@ -88,61 +88,112 @@ def bstr(B):
     return f"{B:g}"
 
 
-def spin_summary(res, wire, ham, U):
-    """Dict of the per-B quantities (meV / nm^-1)."""
+# barrier top of the UNPOLARISED B = 0 state of the same model / length [meV above e_0(far)]
+TOP_UNPOL = {("interacting", 1.0): 0.6282, ("interacting", 1.5): 0.7094, ("interacting", 2.0): 0.8366,
+             ("bare", 1.0): 0.5785, ("bare", 1.5): 0.6344, ("bare", 2.0): 0.7133}
+
+
+def spin_summary(res, wire, ham, U, wx=None, lead=None):
+    """Dict of the per-B quantities (meV / nm^-1), incl. barrier_features ('feat') and
+    D_dn = top_dn - top_unpol, D_up0 = e_0,up(0) - top_unpol (TOP_UNPOL of the same model/length)."""
     g = ham.grid
     meV = U.au_to_meV
     x_nm = U.au_to_nm(min_image(g.real_axes()[0], g.Lx))
     far = np.abs(x_nm) > FAR_NM
     e0 = barrier_profile(res, ham)
     top = e0.max(axis=0)
+    feat = barrier_features(res, ham, units=U)
+    tu = TOP_UNPOL.get((lead, wx), np.nan)
+    top_dn = meV(top[1] - e0[far, 1].mean())
     return dict(M=res.M, M_loc=net_spin_local(res, wire, g), M_win=net_spin_window(res, wire, g),
                 N=res.N, M_wire=wire.M,
                 nup_far=(n1d(res.n_up, g) / U.length_nm)[far].mean(),
                 ndn_far=(n1d(res.n_dn, g) / U.length_nm)[far].mean(),
-                top_up=meV(top[0] - e0[far, 0].mean()), top_dn=meV(top[1] - e0[far, 1].mean()),
+                top_up=meV(top[0] - e0[far, 0].mean()), top_dn=top_dn,
                 mu_top_up=meV(res.mu - top[0]), mu_top_dn=meV(res.mu - top[1]),
-                mu=meV(res.mu))
+                mu=meV(res.mu), D_dn=top_dn - tu, D_up0=feat["centre"][0] - tu, feat=feat)
 
 
 HEADER = (f"{'B[T]':>5} {'M_loc':>8} {'M_win300':>8} {'M':>9} {'M_wire':>8} {'it':>4} {'t[s]':>7} {'N':>9} "
           f"{'nup_far':>9} {'ndn_far':>9} {'top_up':>7} {'top_dn':>7} {'mu-top_up':>9} {'mu-top_dn':>9} "
-          f"{'conv':>5}")
+          f"{'D_dn':>7} {'D_up0':>7} {'conv':>5}")
 
 
 def row(B, d, it, t, conv):
     return (f"{B:5g} {d['M_loc']:8.4f} {d['M_win']:8.4f} {d['M']:9.4f} {d['M_wire']:8.4f} {it:4d} {t:7.1f} {d['N']:9.4f} "
             f"{d['nup_far']:9.6f} {d['ndn_far']:9.6f} {d['top_up']:7.4f} {d['top_dn']:7.4f} "
-            f"{d['mu_top_up']:+9.4f} {d['mu_top_dn']:+9.4f} {str(conv):>5}")
+            f"{d['mu_top_up']:+9.4f} {d['mu_top_dn']:+9.4f} {d['D_dn']:+7.3f} {d['D_up0']:+7.3f} {str(conv):>5}")
 
 
-# HMW targets (user's readings of PRL Fig. 1(a),(d); polarised state, B = 0, hbar w_x = 1.0 meV)
-HMW_TARGETS = {1.0: dict(
-    peaks_up="two peaks at x ~ +-80 nm, ~0.6 meV (nearly flat top over ~160 nm)",
-    centre_up="~0.45 meV (shallow dip ~0.15 meV)",
-    peaks_dn="one peak ~1.2 meV (just above mu)",
-    mu_e0far="~1.1 meV",
-    n1d_0="~1.5e-2 nm^-1 total",
-    M_loc="~0.85",
-    ldos="spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV")}
+# HMW targets: user's readings of PRL Fig. 1 (polarised state, B = 0, mu - e_0(far) ~ 1.1 meV in the
+# paper; barrier heights in meV above the far band bottom). Observation tracked: in HMW
+# top_dn - top_unpol ~ +0.6 meV for all three lengths and the spin-up peak ~ the unpolarised top
+# (D_dn ~ +0.6, D_up0 ~ -0.18 at wx = 1.0).
+_LDOS_T = dict(res="~ -0.5 meV", onset="~ +0.1 meV", U="~0.6 meV", gamma="~0.1 meV")
+HMW_TARGETS = {
+    1.0: dict(peaks_up="two peaks ~0.6 meV at x ~ +-80 nm (nearly flat top over ~160 nm)",
+              centre_up="~0.45 meV (shallow dip ~0.15 meV)", peaks_dn="one peak ~1.2 meV (just above mu)",
+              mu_e0far="~1.1 meV", n1d_0="~1.5e-2 nm^-1 total", M_loc="~0.85",
+              D="D_dn ~ +0.6, D_up0 ~ -0.18", **_LDOS_T),
+    1.5: dict(peaks_up="~0.6 meV", peaks_dn="~1.3 meV", mu_e0far="~1.1 meV", n1d_0="~1.4e-2 nm^-1 total",
+              M_loc="~0.93", D="D_dn ~ +0.6", **_LDOS_T),
+    2.0: dict(peaks_up="single peak ~0.8 meV at x = 0", peaks_dn="single peak ~1.5 meV", mu_e0far="~1.1 meV",
+              M_loc="~0.90", D="D_dn ~ +0.6", **_LDOS_T),
+}
 
 
 def model_tag(lead, interp):
-    """'A' / 'B' (+ '_quadratic' when not the exchange interpolation)."""
-    return ("A" if lead == "interacting" else "B") + ("" if interp == "exchange" else f"_{interp}")
+    """'A' / 'B' + '' (exchange) | '_quad' (quadratic) | '_mixed{w}' (mixed:w)."""
+    if interp == "exchange":
+        suf = ""
+    elif interp == "quadratic":
+        suf = "_quad"
+    elif interp.startswith("mixed:"):
+        suf = "_mixed" + interp.split(":", 1)[1]
+    else:
+        suf = "_" + interp
+    return ("A" if lead == "interacting" else "B") + suf
 
 
 def qpc_path(wx, lead, interp, B, suffix=""):
     return f"results/qpc_wx{wx}_{model_tag(lead, interp)}_B{bstr(B)}{suffix}.npz"
 
 
-def print_features(res, ham, U, d, wx, B):
-    f = barrier_features(res, ham, units=U)
+def print_features(res, ham, U, d, wx, B, ldos=True):
+    """Feature block (barrier maxima, centre, n_1D(0), mu - e_0(far), D columns) and, for
+    M_loc > 0.3, the LDOS numbers at x = 0 (eta = 0.05, 0.1); HMW targets printed at B = 0."""
+    from qpc.analysis import ldos_1d, ldos_features
+    f = d["feat"]
     t = HMW_TARGETS.get(wx, {}) if B == 0 else {}
     print(f"  M = {d['M']:.4f}, M_loc = {d['M_loc']:.4f}" + (f"   # HMW: {t['M_loc']}" if t else "")
           + f", M_win300 = {d['M_win']:.4f}", flush=True)
     print(format_features(f, t), flush=True)
+    print(f"  D_dn = top_dn - top_unpol = {d['D_dn']:+.4f} meV, D_up0 = e_0,up(0) - top_unpol = "
+          f"{d['D_up0']:+.4f} meV" + (f"   # HMW: {t['D']}" if t else ""), flush=True)
+    if ldos and d["M_loc"] > 0.3:
+        mu_meV = U.au_to_meV(res.mu)
+        e_max = min(U.au_to_meV(np.max(res.eigs[s])) for s in range(2))
+        E = np.arange(f["e0_far"][0] - 0.3, e_max - 0.15, 0.002)
+        for eta in (0.05, 0.1):
+            _, rho = ldos_1d(res, ham, 0.0, E, eta_meV=eta, units=U)
+            lf = ldos_features(E, rho, mu_meV, f["e0_far"][0])
+            print(f"  LDOS eta={eta}: up resonance e-mu = {lf['res_e']:+.4f} meV"
+                  + (f" (# HMW {t['res']})" if t else "")
+                  + f", FWHM = {lf['fwhm']:.4f} meV" + (f" (# HMW Gamma {t['gamma']}, incl. 2 eta)" if t else "")
+                  + f"; dn onset e-mu = {lf['onset_dn']:+.4f} meV" + (f" (# HMW {t['onset']})" if t else "")
+                  + f"; U = {lf['U']:.4f} meV" + (f" (# HMW {t['U']})" if t else ""), flush=True)
     return f
+
+
+def ramp_end_lines(feats):
+    """Summary after a ramp: B with two spin-up peaks, B at the minimum of M_loc(B), M_loc(B = 0)."""
+    two = [B for B, d, f in feats if len(f["peaks"][0]) >= 2]
+    Bmin, dmin, _ = min(feats, key=lambda t: t[1]["M_loc"])
+    b0 = [d["M_loc"] for B, d, f in feats if B == 0]
+    return (f"largest B with two spin-up barrier peaks: {max(two) if two else 'none'} T\n"
+            f"B at the minimum of M_loc(B): {Bmin:g} T (M_loc = {dmin['M_loc']:.4f})\n"
+            f"M_loc(B = 0): " + (f"{b0[0]:.4f}" if b0 else "not in ramp") + "\n"
+            f"M_loc(B) in ramp order: {[(B, round(d['M_loc'], 4)) for B, d, f in feats]}")
 
 
 def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None, interp="quadratic"):
@@ -193,7 +244,7 @@ def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None, interp="q
             t_run = time.perf_counter() - t1
             res.save_npz(out)
             print(f"saved {out}", flush=True)
-        d = spin_summary(res, wire, ham, U)
+        d = spin_summary(res, wire, ham, U, wx, lead)
         print(HEADER + "\n" + row(B, d, res.iterations, t_run, res.converged), flush=True)
         lines.append(row(B, d, res.iterations, t_run, res.converged))
         feats.append((B, d, print_features(res, ham, U, d, wx, B)))
@@ -204,11 +255,7 @@ def run_ramp(wx, B_list, table_path, lead="interacting", up_from=None, interp="q
         fh.write(f"# {label}, wx = {wx} meV, lead = {lead}, B = {list(B_list)}  ({time.ctime()})\n{HEADER}\n"
                  + "\n".join(lines) + "\n")
     print("\n" + HEADER + "\n" + "\n".join(lines))
-    two = [B for B, d, f in feats if len(f["peaks"][0]) >= 2]
-    below = [B for B, d, f in feats if d["M_loc"] < 0.1]
-    print(f"\nlargest B with two spin-up barrier peaks: {max(two) if two else 'none'} T;  "
-          f"largest B with M_loc < 0.1: {max(below) if below else 'none'} T "
-          f"(B values in ramp order: {[ (B, round(d['M_loc'], 4)) for B, d, f in feats ]})", flush=True)
+    print("\n" + ramp_end_lines(feats), flush=True)
 
 
 def run_large_seed(wx, table_path, lead, interp, maxiter=200, kT=0.05, sigma_nm=60.0, M0=1.0):
@@ -233,7 +280,7 @@ def run_large_seed(wx, table_path, lead, interp, maxiter=200, kT=0.05, sigma_nm=
                   checkpoint=out.replace(".npz", "_ckpt.npz"), checkpoint_every=1)
     t_run = time.perf_counter() - t1
     res.save_npz(out)
-    d = spin_summary(res, lead_obj, ham, U)
+    d = spin_summary(res, lead_obj, ham, U, wx, lead)
     line = row(0.0, d, res.iterations, t_run, res.converged)
     print("\n" + HEADER + "\n" + line)
     print_features(res, ham, U, d, wx, 0.0)
@@ -261,7 +308,7 @@ def run_seed_b0(wx, table_path, lead="interacting", interp="quadratic", maxiter=
                   checkpoint=out.replace(".npz", "_ckpt.npz"), checkpoint_every=1)
     t_run = time.perf_counter() - t1
     res.save_npz(out)
-    d = spin_summary(res, lead_obj, ham, U)
+    d = spin_summary(res, lead_obj, ham, U, wx, lead)
     line = row(0.0, d, res.iterations, t_run, res.converged)
     print("\n" + HEADER + "\n" + line)
     summarise(res, ham, U, mu, f"seeded B = 0: wx = {wx}, lead = {lead}, interp = {interp}", t_run)
@@ -281,7 +328,7 @@ def main():
     mode.add_argument("--large-seed", action="store_true", help="B = 0, Gaussian seed with M_init = 1")
     ap.add_argument("--lead", choices=["interacting", "bare"], default="interacting",
                     help="lead reference (model A / B)")
-    ap.add_argument("--interp", choices=["quadratic", "exchange"], default=None,
+    ap.add_argument("--interp", default=None,   # quadratic | exchange | mixed:w
                     help="default: SCFParams default (quadratic)")
     ap.add_argument("--maxiter", type=int, default=None, help="--seed-b0 (150) / --large-seed (200)")
     ap.add_argument("--kT", type=float, default=0.05, help="kT in meV; --unpolarised / --seed-b0")

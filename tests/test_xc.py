@@ -16,7 +16,7 @@ def smooth_densities(seed, shape=(40, 30)):
     return field(), 0.6 * field()
 
 
-@pytest.mark.parametrize("interp", ["exchange", "quadratic"])
+@pytest.mark.parametrize("interp", ["exchange", "quadratic", "mixed:0.5"])
 @pytest.mark.parametrize("spin", [0, 1])
 def test_functional_derivative(interp, spin):
     """(i) [E(n + h dn_s) - E(n - h dn_s)]/2h == sum v_s dn_s dA, rel 1e-6."""
@@ -37,7 +37,7 @@ def test_functional_derivative(interp, spin):
     assert abs(lhs - rhs) <= 1e-6 * abs(rhs), (lhs, rhs)
 
 
-@pytest.mark.parametrize("interp", ["exchange", "quadratic"])
+@pytest.mark.parametrize("interp", ["exchange", "quadratic", "mixed:0.5"])
 def test_pade_limits(interp):
     """(ii) zeta = 0 and zeta = 1 reproduce the two Pade fits exactly (Ry* -> Ha*)."""
     rs = np.array([0.5, 1.0, 2.0, 3.7, 10.0])
@@ -59,7 +59,7 @@ def test_exchange_unpolarised():
     np.testing.assert_allclose(eps_x(rs, 1.0)[0] / eps_x(rs, 0.0)[0], np.sqrt(2), rtol=1e-14)
 
 
-@pytest.mark.parametrize("interp", ["exchange", "quadratic"])
+@pytest.mark.parametrize("interp", ["exchange", "quadratic", "mixed:0.5"])
 def test_unpolarised_potentials_equal(interp):
     """(iv) v_up == v_dn when n_up == n_dn."""
     n, _ = smooth_densities(5)
@@ -71,7 +71,7 @@ def test_floor_and_no_nan():
     """(v) zeros below the floor, no NaN anywhere (incl. n = 0, full polarisation, tiny negatives)."""
     n_up = np.array([0.0, 0.3 * N_FLOOR, 0.1, 0.1, 0.05, -1e-14])
     n_dn = np.array([0.0, 0.3 * N_FLOOR, 0.0, 0.1, 0.07, 0.02])
-    for interp in ("exchange", "quadratic"):
+    for interp in ("exchange", "quadratic", "mixed:0.5"):
         eps, v_up, v_dn = exc_vxc(n_up, n_dn, interp)
         for a in (eps, v_up, v_dn):
             assert np.all(np.isfinite(a))
@@ -124,3 +124,16 @@ def test_pade_vs_tc_tables(zeta, rs):
     coeffs = TC_UNPOL if zeta == 0.0 else TC_POL
     ec_ry = eps_c_pade(float(rs), coeffs)[0] / RY
     assert abs(ec_ry - ref) <= TOL[zeta] * abs(ref), (zeta, rs, ec_ry, ref)
+
+
+def test_mixed_interpolation():
+    """mixed:w = w * exchange + (1 - w) * quadratic for eps and both potentials; w = 0 / 1 limits."""
+    n_up, n_dn = smooth_densities(9)
+    for w in (0.0, 0.3, 1.0):
+        m = exc_vxc(n_up, n_dn, f"mixed:{w}")
+        e = exc_vxc(n_up, n_dn, "exchange")
+        q = exc_vxc(n_up, n_dn, "quadratic")
+        for a, b, c in zip(m, e, q):
+            np.testing.assert_allclose(a, w * b + (1 - w) * c, rtol=1e-13, atol=1e-15)
+    with pytest.raises(ValueError):
+        exc_vxc(n_up, n_dn, "mixed:1.5")

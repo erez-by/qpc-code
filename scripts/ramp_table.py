@@ -9,7 +9,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from run_qpc import HEADER, bstr, row, setup, spin_summary   # noqa: E402
+from run_qpc import HEADER, bstr, ramp_end_lines, row, setup, spin_summary   # noqa: E402
 
 from qpc.scf import SCFResult                                 # noqa: E402
 
@@ -20,19 +20,25 @@ def main():
     ap.add_argument("--dir", default="results")
     ap.add_argument("--B", type=float, nargs="+", required=True)
     ap.add_argument("--extra", nargs="*", default=[], help="extra qpc npz names in --dir (B = 0 rows)")
+    ap.add_argument("--qpc", default="qpc_wx{wx}_B{B}.npz", help="qpc file pattern in --dir")
+    ap.add_argument("--wire", default="wire_B{B}.npz", help="clean-wire file pattern in --dir")
+    ap.add_argument("--lead", default="interacting")
     args = ap.parse_args()
     U, grid, ham, hart, q = setup(args.wx)
     print(HEADER)
+    feats = []
     for B in args.B:
-        res = SCFResult.load_npz(os.path.join(args.dir, f"qpc_wx{args.wx}_B{bstr(B)}.npz"))
-        wire = SCFResult.load_npz(os.path.join(args.dir, f"wire_B{bstr(B)}.npz"))
-        d = spin_summary(res, wire, ham, U)
+        res = SCFResult.load_npz(os.path.join(args.dir, args.qpc.format(wx=args.wx, B=bstr(B))))
+        wire = SCFResult.load_npz(os.path.join(args.dir, args.wire.format(wx=args.wx, B=bstr(B))))
+        d = spin_summary(res, wire, ham, U, args.wx, args.lead)
+        feats.append((B, d, d["feat"]))
         print(row(B, d, res.iterations, sum(h[5] for h in res.history), res.converged))
     for name in args.extra:
         res = SCFResult.load_npz(os.path.join(args.dir, name))
-        wire = SCFResult.load_npz(os.path.join(args.dir, "wire_B0.npz"))
-        d = spin_summary(res, wire, ham, U)
+        wire = SCFResult.load_npz(os.path.join(args.dir, args.wire.format(wx=args.wx, B="0")))
+        d = spin_summary(res, wire, ham, U, args.wx, args.lead)
         print(row(0.0, d, res.iterations, sum(h[5] for h in res.history), res.converged) + f"   ({name})")
+    print(ramp_end_lines(feats))
 
 
 if __name__ == "__main__":

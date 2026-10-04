@@ -1,0 +1,8 @@
+Unpolarised B = 0 states at hbar w_x = 2.0 meV (kT = 0.05 meV, a_image = 100 nm), independent runs by the user
+(recorded, NOT recomputed here):
+  model A: converged 30 it, N = 138.833, n_1D(0) = 0.010488 nm^-1, top - far = 0.8366 meV, mu - top = +0.0930 meV
+  model B: converged 16 it, N = 139.315, n_1D(0) = 0.015831 nm^-1, top - far = 0.7133 meV, mu - top = +0.3886 meV
+Unpolarised barrier tops used for D_dn / D_up0 (scripts/run_qpc.py TOP_UNPOL), meV above e_0(far):
+  A: wx 1.0 0.6282, 1.5 0.7094, 2.0 0.8366;  B: wx 1.0 0.5785, 1.5 0.6344, 2.0 0.7133
+HMW targets (user's readings of PRL Fig. 1, polarised, B = 0): see HMW_TARGETS in scripts/run_qpc.py.
+Observation tracked: in HMW top_dn - top_unpol ~ +0.6 meV for all lengths; spin-up peak ~ unpolarised top.

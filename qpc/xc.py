@@ -62,7 +62,16 @@ def spin_interp(zeta, interp):
                    exchange-like interpolation (copies the zeta-dependence of the exact 2D
                    exchange); Koskinen, Manninen & Reimann, PRL 79, 1389 (1997).
                    "vbh" is a deprecated alias (earlier mislabel).
+      "mixed:w":   f = w f_exchange + (1 - w) z^2, 0 <= w <= 1 (e.g. "mixed:0.5"); interpolates
+                   between the two (sensitivity study).
     """
+    if isinstance(interp, str) and interp.startswith("mixed:"):
+        w = float(interp.split(":", 1)[1])
+        if not 0.0 <= w <= 1.0:
+            raise ValueError(f"mixed weight {w} not in [0, 1]")
+        fe, dfe = spin_interp(zeta, "exchange")
+        fq, dfq = spin_interp(zeta, "quadratic")
+        return w * fe + (1 - w) * fq, w * dfe + (1 - w) * dfq
     if interp in ("exchange", "vbh"):
         c = 2.0 ** 1.5 - 2.0
         p, m = 1.0 + zeta, 1.0 - zeta

@@ -1,4 +1,4 @@
-# Overnight summary (2026-10-04 23:31)
+# Overnight summary (2026-10-04 23:42)
 
 Columns: M_loc (local moment), M_win (|x|<300 nm), zeta0 = spin polarisation of n_1D at x = 0, n1d0 [1e-2 nm^-1], barrier heights in meV above e_0(far) as height@x(nm), e0up(0) = spin-up value at x = 0, D_dn = top_dn - top_unpol, D_up0 = e0up(0) - top_unpol, LDOS (eta 0.05/0.1 mean): resonance e - mu, Gamma = FWHM_fit - 2 eta, U (HMW definition), all meV.
 
@@ -9,6 +9,19 @@ unpolarised B = 0: top 0.628 meV, n1d0 1.382, mu - e0(far) 0.930, converged True
 | B | conv | it | M_loc | M_win | zeta0 | n1d0 | up peaks | e0up(0) | dn peaks | D_dn | D_up0 | mu-e0far | res-mu | Gamma | U |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 0 | y | 70 | 1.074 | 1.096 | 0.90 | 1.298 | 0.42@-86 0.42@+86 | -0.029 | 0.12@-124 1.22@+0 0.12@+124 | +0.592 | -0.658 | 0.930 | -0.781 | 0.031 | 1.014 |
+
+## A_exch_wx1.5
+
+unpolarised B = 0: top 0.709 meV, n1d0 1.206, mu - e0(far) 0.930, converged True (30 it)
+
+| B | conv | it | M_loc | M_win | zeta0 | n1d0 | up peaks | e0up(0) | dn peaks | D_dn | D_up0 | mu-e0far | res-mu | Gamma | U |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 3 | y | 33 | 0.199 | 0.174 | 0.89 | 1.176 | 0.18@-76 0.22@+0 0.18@+76 | 0.219 | 1.22@+0 | +0.509 | -0.491 | 1.001 | -0.735 | 0.207 | 1.014 |
+| 5 | y | 33 | 0.138 | 0.099 | 0.92 | 1.178 | 0.14@-86 0.21@+0 0.14@+86 | 0.208 | 1.24@+0 | +0.529 | -0.501 | 1.027 | -0.808 | 0.177 | 1.169 |
+| 7 | y | 31 | 0.089 | 0.041 | 0.95 | 1.186 | 0.11@-86 0.21@+0 0.11@+86 | 0.207 | 1.26@+0 | +0.552 | -0.502 | 1.053 | -0.877 | 0.134 | 1.341 |
+| 8 | y | 31 | 0.060 | 0.012 | 0.96 | 1.191 | 0.21@+0 | 0.211 | 1.27@+0 | +0.563 | -0.499 | 1.066 | -0.910 | 0.112 | 1.461 |
+| 9 | y | 31 | 0.027 | -0.018 | 0.96 | 1.196 | 0.22@+0 | 0.216 | 1.28@+0 | +0.573 | -0.494 | 1.081 | -0.769 | 0.868 | 1.355 |
+| 10 | y | 31 | -0.009 | -0.047 | 0.97 | 1.201 | 0.22@+0 | 0.223 | 1.29@+0 | +0.582 | -0.486 | 1.096 | -0.758 | 1.018 | 1.382 |
 
 ## A_exch_wx2.0
 
@@ -42,6 +55,7 @@ PRL targets (user's readings, polarised, B = 0):
 | folder | mu | e1-e0 | mu-e0 | N(subband 1) | hartree_scale |
 |---|---|---|---|---|---|
 | A_exch_wx1.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
+| A_exch_wx1.5 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
 | A_exch_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
 
 ## Spin gain (B = 0, linear mixing, 1 % seed)

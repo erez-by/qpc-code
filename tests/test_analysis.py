@@ -87,3 +87,27 @@ def test_barrier_features_two_peaks():
         assert abs(h1 - 0.6) < 0.03 and abs(h2 - 0.6) < 0.03
         assert 0.0 < f["centre"][s] < 0.2
         assert abs(f["e0_far"][s] - 1.0) < 1e-3 and abs(f["mu_e0far"][s] - 1.1) < 1e-3
+
+
+def test_ldos_clean_wire():
+    """Non-interacting harmonic clean wire: (i) the LDOS at x0 integrates over e to
+    sum_i int dy |psi_i(x0, y)|^2 (Gaussian broadening, wide window); (ii) in the first subband
+    rho(e) ~ 1/(pi hbar v(e)) per spin = 1/(pi sqrt(2 (e - e_0))) in a.u., within the discreteness."""
+    from types import SimpleNamespace
+    from qpc.analysis import ldos_1d
+    grid = grid_from_cutoff(U.nm_to_au(5000.0), U.nm_to_au(320.0), U.meV_to_au(15.0))
+    ham = Hamiltonian(grid, U.meV_to_au(15.0))
+    ham.set_potential(external_potential(grid, QPCParams(), include_qpc=False))
+    e, X = wire_states(ham, 120)                 # all subband-0 states up to ~2.9 meV (< e_1 = 3)
+    res = SimpleNamespace(eigs=[e, e], X=[X, X])
+    E = np.linspace(0.0, 4.5, 4501)
+    _, rho = ldos_1d(res, ham, 0.0, E, eta_meV=0.05, shape="gauss")
+    psi = ham.to_real_space(X)[0]
+    total = (np.abs(psi) ** 2).sum() * grid.dy / (grid.Lx * grid.Ly) / U.length_nm   # nm^-1
+    assert abs(rho[0].sum() * (E[1] - E[0]) / total - 1) < 1e-6
+    # free 1D band: rho = 1/(pi v), v = sqrt(2 (e - e0)); convert 1/(Ha* a*) -> 1/(meV nm)
+    _, rho_b = ldos_1d(res, ham, 0.0, E, eta_meV=0.1, shape="gauss")
+    for e_rel in (0.5, 1.0, 1.5):
+        k = np.argmin(np.abs(E - (1.0 + e_rel)))
+        exact = 1 / (np.pi * np.sqrt(2 * U.meV_to_au(e_rel))) / (U.energy_meV * U.length_nm)
+        assert abs(rho_b[0][k] / exact - 1) < 0.05, (e_rel, rho_b[0][k], exact)

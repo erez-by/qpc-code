@@ -144,3 +144,72 @@ def format_features(f, targets=None):
     lines.append(f"  n_1D(0) = {f['n1d_0']:.6f} nm^-1 (up {f['n1d_0_s'][0]:.6f}, dn {f['n1d_0_s'][1]:.6f})"
                  + (f"   # HMW: {t['n1d_0']}" if 'n1d_0' in t else ""))
     return "\n".join(lines)
+
+
+def ldos_1d(res, ham, x0=0.0, energies_meV=None, eta_meV=0.05, shape="lorentz", units=None):
+    """Local 1D density of states at x = x0, per spin (HMW Figs. 1-2 insets / Fig. 2):
+
+        rho_s(x0, e) = sum_i [ int dy |psi_is(x0, y)|^2 ] L_eta(e - e_is)        [1/(meV nm)]
+
+    with the physical orbital psi_is = ham.to_real_space(X_is) / sqrt(Lx Ly) (sum|c|^2 = 1), the
+    x0 slice taken at the nearest grid point (x0 in nm, physical coordinate), the y integral as
+    sum * dy. L_eta: Lorentzian (eta/pi)/(e^2 + eta^2) ("lorentz") or a normalised Gaussian of
+    standard deviation eta ("gauss"). Uses the stored eigenpairs res.eigs[s], res.X[s].
+
+    LIMIT: only the computed KS states enter; they are converged up to the band margin
+    (~ mu + 15 kT = mu + 0.75 meV at kT = 0.05 meV, more if nb was larger). Energies above the
+    highest stored eigenvalue minus a few eta are not meaningful. eta must not be smaller than
+    the level spacing of the finite cell (~0.06 meV near mu for Lx = 5 um); default 0.05 meV.
+    Returns (energies_meV, rho) with rho shape (2, n_e) in 1/(meV nm).
+    """
+    from .fourier import min_image
+    from .units import Units
+    U = units or Units()
+    g = ham.grid
+    x_nm = U.au_to_nm(min_image(g.real_axes()[0], g.Lx))
+    ix = int(np.argmin(np.abs(x_nm - x0)))
+    e = np.asarray(energies_meV, dtype=float)
+    rho = np.zeros((2, e.size))
+    for s in range(2):
+        X = np.asarray(res.X[s])
+        w = np.empty(X.shape[1])
+        for start in range(0, X.shape[1], 32):
+            psi = ham.to_real_space(X[:, start:start + 32])[ix]            # (Ny, k)
+            w[start:start + 32] = (np.abs(psi) ** 2).sum(axis=0) * g.dy / (g.Lx * g.Ly)
+        w = w / U.length_nm                                                 # a*^-1 -> nm^-1
+        de = e[:, None] - U.au_to_meV(np.asarray(res.eigs[s]))[None, :]
+        if shape == "lorentz":
+            L = (eta_meV / np.pi) / (de ** 2 + eta_meV ** 2)
+        elif shape == "gauss":
+            L = np.exp(-de ** 2 / (2 * eta_meV ** 2)) / (np.sqrt(2 * np.pi) * eta_meV)
+        else:
+            raise ValueError(shape)
+        rho[s] = L @ w
+    return e, rho
+
+
+def ldos_features(e, rho, mu_meV, e0_far_meV, lo_meV=0.1):
+    """Spin-up resonance and spin-down onset from ldos_1d output (energies in meV).
+
+    Resonance: maximum of rho_up for e in [e0_far + lo, mu]; FWHM from the half-maximum crossings
+    around it (linear interpolation). U-onset: energy of max d rho_dn/de for e > e0_far.
+    U = onset - resonance (HMW definition). Returns dict (energies relative to mu)."""
+    sel = (e >= e0_far_meV + lo_meV) & (e <= mu_meV)
+    i = np.nonzero(sel)[0][np.argmax(rho[0][sel])]
+    peak = rho[0][i]
+    half = 0.5 * peak
+
+    def cross(direction):
+        j = i
+        while 0 < j < e.size - 1 and rho[0][j] > half:
+            j += direction
+        j0 = j - direction
+        y0, y1 = rho[0][j0], rho[0][j]
+        return e[j0] + (half - y0) * (e[j] - e[j0]) / (y1 - y0) if y1 != y0 else e[j]
+
+    fwhm = cross(+1) - cross(-1)
+    d = np.gradient(rho[1], e)
+    sel_d = e > e0_far_meV
+    k = np.nonzero(sel_d)[0][np.argmax(d[sel_d])]
+    return dict(res_e=e[i] - mu_meV, res_height=peak, fwhm=fwhm, onset_dn=e[k] - mu_meV,
+                U=e[k] - e[i])

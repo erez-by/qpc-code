@@ -1,0 +1,80 @@
+=== wx = 1.0 meV, interp = exchange, a_image = 100 nm, kT = 0.05 meV (Sun Oct  4 19:49:40 IDT 2026) ===
+
+##### Janak ramp model A (6 -> 0 T)
+ B[T]    M_loc M_win300         M   M_wire   it    t[s]         N   nup_far   ndn_far  top_up  top_dn mu-top_up mu-top_dn  conv
+    6   0.0843  -0.0082   29.1122  29.0279   58   471.0  137.4481  0.016904  0.011097  0.2330  1.3411   +0.8064   -0.6479  True
+    4   0.1247   0.0304   23.6690  23.5443   43   219.2  137.4800  0.016356  0.011645  0.2824  1.2962   +0.7316   -0.5365  True
+    2   0.0976   0.0245   17.3593  17.2617   46   214.6  137.5163  0.015727  0.012274  0.3737  1.2142   +0.6137   -0.3853  True
+    1   0.2589   0.1996   12.7748  12.5159   42   189.9  137.5340  0.015253  0.012748  0.4158  1.2006   +0.5544   -0.3320  True
+  0.5   0.4951   0.4460    8.9754   8.4804   43   200.7  137.5431  0.014849  0.013152  0.4247  1.2036   +0.5324   -0.3102  True
+ 0.25   0.7201   0.6870    5.8829   5.1628   45   205.2  137.5474  0.014517  0.013484  0.4238  1.2094   +0.5228   -0.2999  True
+    0   1.0737   1.0964    1.0737  -0.0000   70   311.3  137.5500  0.014001  0.014000  0.4156  1.2199   +0.5140   -0.2903  True
+largest B with two spin-up barrier peaks: 6.0 T;  largest B with M_loc < 0.1: 6.0 T (B values in ramp order: [(6.0, 0.0843), (4.0, 0.1247), (2.0, 0.0976), (1.0, 0.2589), (0.5, 0.4951), (0.25, 0.7201), (0.0, 1.0737)])
+-- features at B = 0:
+  M = 1.0737, M_loc = 1.0737   # HMW: ~0.85, M_win300 = 1.0964
+  [up] peaks: x=-85.7 nm h=0.4156, x=+85.7 nm h=0.4156   # HMW: two peaks at x ~ +-80 nm, ~0.6 meV (nearly flat top over ~160 nm)
+  [up] e_0(0)-e_0(far) = -0.0294 meV   # HMW: ~0.45 meV (shallow dip ~0.15 meV);  mu - e_0(far) = 0.9296 meV   # HMW: ~1.1 meV
+  [dn] peaks: x=-123.8 nm h=0.1159, x=+0.0 nm h=1.2199, x=+123.8 nm h=0.1159   # HMW: one peak ~1.2 meV (just above mu)
+  [dn] e_0(0)-e_0(far) = 1.2199 meV;  mu - e_0(far) = 0.9296 meV   # HMW: ~1.1 meV
+  n_1D(0) = 0.012979 nm^-1 (up 0.012347, dn 0.000632)   # HMW: ~1.5e-2 nm^-1 total
+
+##### Janak ramp model B (6 -> 0 T)
+ B[T]    M_loc M_win300         M   M_wire   it    t[s]         N   nup_far   ndn_far  top_up  top_dn mu-top_up mu-top_dn  conv
+    6   0.4476   0.4445    5.3179   4.8702   44   227.3  138.6116  0.014487  0.013513  0.4354  0.8860   +0.7443   +0.1409  True
+    4   0.1141   0.0984    3.3609   3.2468   39   180.0  138.6153  0.014325  0.013675  0.6097  0.9602   +0.5438   +0.0914  True
+    2   0.0125  -0.0116    1.6359   1.6234   33   146.9  138.6124  0.014163  0.013838  0.7055  1.0219   +0.4221   +0.0547  True
+    1   0.0173  -0.0125    0.8290   0.8117   25   116.2  138.6117  0.014081  0.013919  0.7215  1.0335   +0.3932   +0.0558  True
+  0.5   0.0248  -0.0081    0.4306   0.4059   21    97.3  138.6115  0.014041  0.013960  0.7265  1.0370   +0.3818   +0.0586  True
+ 0.25   0.0293  -0.0052    0.2322   0.2029   19    87.2  138.6114  0.014021  0.013980  0.7284  1.0383   +0.3767   +0.0605  True
+    0   0.0342  -0.0019    0.0342   0.0000   18    80.2  138.6113  0.014000  0.014000  0.7300  1.0392   +0.3719   +0.0627  True
+largest B with two spin-up barrier peaks: 6.0 T;  largest B with M_loc < 0.1: 2.0 T (B values in ramp order: [(6.0, 0.4476), (4.0, 0.1141), (2.0, 0.0125), (1.0, 0.0173), (0.5, 0.0248), (0.25, 0.0293), (0.0, 0.0342)])
+-- features at B = 0:
+  M = 0.0342, M_loc = 0.0342   # HMW: ~0.85, M_win300 = -0.0019
+  [up] peaks: x=-133.3 nm h=0.1842, x=-47.6 nm h=0.7300, x=+47.6 nm h=0.7300, x=+133.3 nm h=0.1842   # HMW: two peaks at x ~ +-80 nm, ~0.6 meV (nearly flat top over ~160 nm)
+  [up] e_0(0)-e_0(far) = 0.1600 meV   # HMW: ~0.45 meV (shallow dip ~0.15 meV);  mu - e_0(far) = 1.1020 meV   # HMW: ~1.1 meV
+  [dn] peaks: x=-171.4 nm h=0.1006, x=-95.2 nm h=0.3574, x=+0.0 nm h=1.0392, x=+95.2 nm h=0.3574, x=+171.4 nm h=0.1006   # HMW: one peak ~1.2 meV (just above mu)
+  [dn] e_0(0)-e_0(far) = 1.0392 meV;  mu - e_0(far) = 1.1019 meV   # HMW: ~1.1 meV
+  n_1D(0) = 0.018953 nm^-1 (up 0.014350, dn 0.004604)   # HMW: ~1.5e-2 nm^-1 total
+
+##### large seed (M_init = 1, Pulay, maxiter 200) model A
+large-seed B = 0: wx = 1.0, model A, sigma = 60.0 nm, s = 0.3798, initial M = 1.0000, Pulay, maxiter = 200
+SCF converged after 63 iterations, 276.0 s
+  M = 1.0732, M_loc = 1.0732   # HMW: ~0.85, M_win300 = 1.0964
+  [up] peaks: x=-85.7 nm h=0.4156, x=+85.7 nm h=0.4156   # HMW: two peaks at x ~ +-80 nm, ~0.6 meV (nearly flat top over ~160 nm)
+  [up] e_0(0)-e_0(far) = -0.0294 meV   # HMW: ~0.45 meV (shallow dip ~0.15 meV);  mu - e_0(far) = 0.9296 meV   # HMW: ~1.1 meV
+  [dn] peaks: x=-123.8 nm h=0.1159, x=+0.0 nm h=1.2199, x=+123.8 nm h=0.1159   # HMW: one peak ~1.2 meV (just above mu)
+  [dn] e_0(0)-e_0(far) = 1.2199 meV;  mu - e_0(far) = 0.9296 meV   # HMW: ~1.1 meV
+  n_1D(0) = 0.012979 nm^-1 (up 0.012347, dn 0.000632)   # HMW: ~1.5e-2 nm^-1 total
+
+##### large seed (M_init = 1, Pulay, maxiter 200) model B
+large-seed B = 0: wx = 1.0, model B, sigma = 60.0 nm, s = 0.3103, initial M = 1.0000, Pulay, maxiter = 200
+SCF converged after 43 iterations, 149.4 s
+  M = 0.0000, M_loc = 0.0000   # HMW: ~0.85, M_win300 = 0.0000
+  [up] peaks: x=+0.0 nm h=0.5784   # HMW: two peaks at x ~ +-80 nm, ~0.6 meV (nearly flat top over ~160 nm)
+  [up] e_0(0)-e_0(far) = 0.5784 meV   # HMW: ~0.45 meV (shallow dip ~0.15 meV);  mu - e_0(far) = 1.1019 meV   # HMW: ~1.1 meV
+  [dn] peaks: x=+0.0 nm h=0.5785   # HMW: one peak ~1.2 meV (just above mu)
+  [dn] e_0(0)-e_0(far) = 0.5785 meV;  mu - e_0(far) = 1.1019 meV   # HMW: ~1.1 meV
+  n_1D(0) = 0.018419 nm^-1 (up 0.009210, dn 0.009208)   # HMW: ~1.5e-2 nm^-1 total
+
+##### LDOS at x = 0 (Lorentzian)
+=== results/qpc_wx1.0_A_B0.npz: B = 0.0 T, lead = interacting, interp = exchange, M_loc = 1.0737; highest stored level mu + 1.061 meV
+  eta = 0.05: spin-up resonance at e - mu = -0.7896 meV (e - e_0,up(far) = 0.1400), FWHM = 0.1324 meV; max d rho_dn/de at e - mu = +0.2664 meV; U = 1.0560 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+  eta = 0.1: spin-up resonance at e - mu = -0.7856 meV (e - e_0,up(far) = 0.1440), FWHM = 0.2433 meV; max d rho_dn/de at e - mu = +0.2024 meV; U = 0.9880 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+=== results/qpc_wx1.0_A_B0.25.npz: B = 0.25 T, lead = interacting, interp = exchange, M_loc = 0.7205; highest stored level mu + 1.044 meV
+  eta = 0.05: spin-up resonance at e - mu = -0.7986 meV (e - e_0,up(far) = 0.1480), FWHM = 0.1320 meV; max d rho_dn/de at e - mu = +0.2854 meV; U = 1.0840 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+  eta = 0.1: spin-up resonance at e - mu = -0.7966 meV (e - e_0,up(far) = 0.1500), FWHM = 0.2427 meV; max d rho_dn/de at e - mu = +0.2154 meV; U = 1.0120 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+=== results/qpc_wx1.0_A_B0.5.npz: B = 0.5 T, lead = interacting, interp = exchange, M_loc = 0.4951; highest stored level mu + 1.034 meV
+  eta = 0.05: spin-up resonance at e - mu = -0.8091 meV (e - e_0,up(far) = 0.1480), FWHM = 0.1314 meV; max d rho_dn/de at e - mu = +0.3009 meV; U = 1.1100 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+  eta = 0.1: spin-up resonance at e - mu = -0.8051 meV (e - e_0,up(far) = 0.1520), FWHM = 0.2421 meV; max d rho_dn/de at e - mu = +0.2269 meV; U = 1.0320 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+=== results/qpc_wx1.0_A_B0_largeseed.npz: B = 0.0 T, lead = interacting, interp = exchange, M_loc = 1.0732; highest stored level mu + 1.061 meV
+  eta = 0.05: spin-up resonance at e - mu = -0.7896 meV (e - e_0,up(far) = 0.1400), FWHM = 0.1324 meV; max d rho_dn/de at e - mu = +0.2664 meV; U = 1.0560 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+  eta = 0.1: spin-up resonance at e - mu = -0.7856 meV (e - e_0,up(far) = 0.1440), FWHM = 0.2433 meV; max d rho_dn/de at e - mu = +0.2024 meV; U = 0.9880 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+=== results/qpc_wx1.0_B_B0.npz: B = 0.0 T, lead = bare, interp = exchange, M_loc = 0.0342; highest stored level mu + 1.544 meV
+  eta = 0.05: M_loc <= 0.3, no resonance analysis; rho_up/dn at mu = 0.0046 / 0.0057 1/(meV nm)
+  eta = 0.1: M_loc <= 0.3, no resonance analysis; rho_up/dn at mu = 0.0055 / 0.0062 1/(meV nm)
+=== results/qpc_wx1.0_B_B6.npz: B = 6.0 T, lead = bare, interp = exchange, M_loc = 0.4476; highest stored level mu + 1.467 meV
+  eta = 0.05: spin-up resonance at e - mu = -0.7917 meV (e - e_0,up(far) = 0.3880), FWHM = 0.2920 meV; max d rho_dn/de at e - mu = -0.3957 meV; U = 0.3960 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+  eta = 0.1: spin-up resonance at e - mu = -0.7797 meV (e - e_0,up(far) = 0.4000), FWHM = 0.4215 meV; max d rho_dn/de at e - mu = -0.4177 meV; U = 0.3620 meV   # HMW: spin-up resonance ~0.5 meV below mu (~0.6 meV above e_0(far)); Gamma ~0.1 meV, U ~0.6 meV
+=== results/qpc_wx1.0_B_B0_largeseed.npz: B = 0.0 T, lead = bare, interp = exchange, M_loc = 0.0000; highest stored level mu + 1.544 meV
+  eta = 0.05: M_loc <= 0.3, no resonance analysis; rho_up/dn at mu = 0.0094 / 0.0094 1/(meV nm)
+  eta = 0.1: M_loc <= 0.3, no resonance analysis; rho_up/dn at mu = 0.0093 / 0.0093 1/(meV nm)

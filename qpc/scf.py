@@ -58,6 +58,7 @@ class SCFParams:
     method: str = DEFAULT_METHOD
     nb_init: int = 160               # production: avoids 3 re-diagonalisations in iteration 1
     spin_polarized: bool = True
+    lead_reference: str = "interacting"   # model A (default) | "bare": model B, see lead_state
 
     def a_metal_au(self, units=Units()):
         """Metal-plane distance a_m = a_image / 2 in a* (the argument of Hartree)."""
@@ -165,11 +166,87 @@ def clean_wire(ham, hartree, qpc_params, p, N, n_init=None, verbose=False):
                      N_sub=[b[1] for b in bands], M=res.M)
 
 
+@dataclass
+class BareReference:
+    """Model B lead reference: NON-interacting clean wire at field B (per spin), fixed N.
+
+    n_up, n_dn (Nx, Ny) a*^-2; mu = mu_ref(B) Ha*; M = N_up - N_dn. Duck-types CleanWire for
+    net_spin_local (attribute res -> self)."""
+    n_up: np.ndarray
+    n_dn: np.ndarray
+    mu: float
+    M: float
+    subbands: list
+    N_sub: list
+
+    @property
+    def res(self):
+        return self
+
+
+def bare_reference(ham, qpc_params, p, N, nb=160):
+    """Non-interacting clean wire V_s = (1/2) w_y^2 y^2 - sigma_s E_Z/2, fixed N (both spins), kT.
+
+    Exact block states (wire_states); mu_ref from find_mu over both spins. HMW delta formulation
+    with a non-interacting reference (model B, SCFParams.lead_reference = "bare").
+    """
+    from .analysis import wire_subbands
+    g = ham.grid
+    kT, EZ = p.kT_au(), p.EZ_au()
+    V0 = external_potential(g, qpc_params, include_qpc=False)
+    ham.set_potential(V0)
+    while True:
+        e, X = wire_states(ham, nb)
+        e_s = [e - 0.5 * EZ, e + 0.5 * EZ]
+        mu = find_mu(e_s, N, kT)
+        if all(check_band_margin(es, mu, kT) for es in e_s):
+            break
+        nb += 20
+    n = [density(ham, X, fermi(es, mu, kT)) for es in e_s]
+    dA = g.dx * g.dy
+    bands = [wire_subbands(ham, V0 - sg * 0.5 * EZ, mu, kT) for sg in (1, -1)]
+    return BareReference(n_up=n[0], n_dn=n[1], mu=mu, M=float((n[0] - n[1]).sum() * dA),
+                         subbands=[b[0] for b in bands], N_sub=[b[1] for b in bands])
+
+
+def bare_external(grid, hartree, qpc_params, ref, interp, include_qpc=True):
+    """Model B: [V_ext_eff,up, V_ext_eff,dn] with
+    V_ext_eff,s = (1/2) w_y^2 y^2 + V_QPC - V_H[n_ref,up + n_ref,dn] - v_xc,s[n_ref,up, n_ref,dn].
+    The Zeeman term is added in ks_potentials as in model A."""
+    V = external_potential(grid, qpc_params, include_qpc=include_qpc) - hartree.potential(ref.n_up + ref.n_dn)
+    _, v_up, v_dn = exc_vxc(ref.n_up, ref.n_dn, interp)
+    return [V - v_up, V - v_dn]
+
+
+def lead_state(ham, hartree, qpc_params, p, N, n_init=None, include_qpc=True):
+    """Leads and V_ext for the QPC run at field p.B_T, per p.lead_reference.
+
+    "interacting" (model A, default): interacting clean wire (clean_wire), V_ext = parabola + V_QPC.
+    "bare" (model B): non-interacting reference (bare_reference), V_ext = bare_external.
+    Returns (lead, mu, V_ext); lead has n_up, n_dn, M (for net_spin_local / starting densities).
+    """
+    if p.lead_reference == "interacting":
+        w = clean_wire(ham, hartree, qpc_params, p, N, n_init=n_init)
+        return w, w.mu, external_potential(ham.grid, qpc_params, include_qpc=include_qpc)
+    if p.lead_reference == "bare":
+        r = bare_reference(ham, qpc_params, p, N)
+        return r, r.mu, bare_external(ham.grid, hartree, qpc_params, r, p.interp, include_qpc)
+    raise ValueError(p.lead_reference)
+
+
+def _per_spin(V_ext):
+    """V_ext as [V_up, V_dn]: a single array is used for both spins."""
+    if isinstance(V_ext, (list, tuple)):
+        return list(V_ext)
+    return [V_ext, V_ext]
+
+
 def ks_potentials(V_ext, V_H, n_up, n_dn, EZ, interp):
-    """[V_up, V_dn] = V_ext + V_H + v_xc,s - sigma_s E_Z/2  (Ha*)."""
+    """[V_up, V_dn] = V_ext,s + V_H + v_xc,s - sigma_s E_Z/2  (Ha*).
+    V_ext: one array (both spins) or [V_ext,up, V_ext,dn] (model B, lead_reference="bare")."""
     _, v_up, v_dn = exc_vxc(n_up, n_dn, interp)
-    base = V_ext + V_H
-    return [base + v_up - 0.5 * EZ, base + v_dn + 0.5 * EZ]
+    Vu, Vd = _per_spin(V_ext)
+    return [Vu + V_H + v_up - 0.5 * EZ, Vd + V_H + v_dn + 0.5 * EZ]
 
 
 # ----------------------------------------------------------------------------- eigen-solvers
@@ -209,8 +286,13 @@ def _solve(ham, nb, method, X0):
 
 # ----------------------------------------------------------------------------- SCF
 def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_init=None,
-            checkpoint=None, checkpoint_every=10, verbose=True, units=Units()):
+            checkpoint=None, checkpoint_every=10, verbose=True, units=Units(), stop=True,
+            callback=None):
     """Kohn-Sham SCF at fixed mu (Ha*) or fixed N (electrons). Returns SCFResult.
+
+    V_ext: one array or [V_ext,up, V_ext,dn]. stop=False: run all p.maxiter iterations without
+    the convergence stop (linear-response measurements). callback(it, M_in, M_out, n_in, n_out)
+    is called every iteration before mixing.
 
     n_init: (n_up, n_dn) start densities [a*^-2] (default: non-interacting V_ext states);
     X_init: [X_up, X_dn] start blocks for LOBPCG warm starts. checkpoint: path; every
@@ -244,7 +326,7 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
         return [fermi(e, m, kT) for e in eigs], m
 
     if n_init is None:
-        eigs, Xs, _ = diagonalise([V_ext, V_ext], nb)
+        eigs, Xs, _ = diagonalise(_per_spin(V_ext), nb)
         f, _ = occupy(eigs)
         n0 = [density(ham, Xs[s], f[s]) for s in range(n_spin)]
         n_in = n0 if n_spin == 2 else [n0[0], n0[0].copy()]
@@ -290,7 +372,9 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
         if verbose:
             print(f"{it:4d} {resid:10.3e} {meV(mu_it):10.5f} {N_out:10.4f} {M_out:10.5f} "
                   f"{nb:5d} {dt:7.2f}", flush=True)
-        if resid < p.tol and abs(M_out - M_in) < p.tol:
+        if callback is not None:
+            callback(it, M_in, M_out, n_in, n_out)
+        if stop and resid < p.tol and abs(M_out - M_in) < p.tol:
             converged = True
             n_in = n_out
             break

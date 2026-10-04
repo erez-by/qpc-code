@@ -1,0 +1,39 @@
+Hartree: kernel W (263, 35, 35) built in 0.90 s
+leads (bare): mu = 2.10192 meV (0.2 s)
+SCF: unpolarised, mu = 2.1019 meV, B = 0.0 T, kT = 0.05 meV, method = dense, interp = quadratic
+  it   residual    mu(meV)          N          M    nb    t(s)
+   1  4.853e+00    2.10192   135.5761    0.00000   160    4.28
+   2  2.568e+00    2.10192   140.0288    0.00000   160    2.12
+   3  1.388e+00    2.10192   139.2257    0.00000   160    2.31
+   4  8.869e-01    2.10192   139.2629    0.00000   160    2.43
+   5  5.998e-01    2.10192   139.0812    0.00000   160    2.13
+   6  3.245e-01    2.10192   139.1474    0.00000   160    2.31
+   7  1.722e-01    2.10192   139.1282    0.00000   160    2.01
+   8  1.045e-01    2.10192   139.0828    0.00000   160    2.20
+   9  2.550e-02    2.10192   139.0898    0.00000   160    4.55
+  10  1.109e-02    2.10192   139.0805    0.00000   160    3.21
+  11  4.617e-03    2.10192   139.0864    0.00000   160    2.02
+  12  1.433e-03    2.10192   139.0856    0.00000   160    2.03
+  13  8.143e-04    2.10192   139.0854    0.00000   160    2.88
+  14  3.669e-04    2.10192   139.0856    0.00000   160    2.98
+  15  2.170e-04    2.10192   139.0855    0.00000   160    2.43
+  16  9.036e-05    2.10192   139.0855    0.00000   160    5.42
+SCF converged after 16 iterations, 45.5 s
+saved results/qpc_wx1.5_unpol_bare.npz
+
+=== QPC hbar w_x = 1.5 meV, unpolarised, B = 0, model B (bare leads, delta formulation), kT = 0.05 meV ===
+mu (leads, N=140)             : 2.10192 meV
+converged                     : True in 16 iterations, 45.5 s
+time per iteration            : mean 2.83 s, max 5.42 s
+N                             : 139.0855
+M = N_up - N_dn               : 0.00000
+far-field n_1D (|x|>1.5um)    : 0.028000 nm^-1  (max dev 0.001 %)
+n_1D(x = 0)                   : 0.017085 nm^-1
+[up] e_0(far)                 : 0.99998 meV
+[up] barrier top - e_0(far)   : 0.63437 meV  (top at x = 0.0 nm; e_0(0) - e_0(far) = 0.63437; bare 3.0)
+[up] mu - e_0(far)            : 1.10194 meV
+[up] mu - barrier top         : +0.46757 meV
+[dn] e_0(far)                 : 0.99998 meV
+[dn] barrier top - e_0(far)   : 0.63437 meV  (top at x = 0.0 nm; e_0(0) - e_0(far) = 0.63437; bare 3.0)
+[dn] mu - e_0(far)            : 1.10194 meV
+[dn] mu - barrier top         : +0.46757 meV

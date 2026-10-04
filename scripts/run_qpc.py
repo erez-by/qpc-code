@@ -34,7 +34,7 @@ from qpc.hamiltonian import Hamiltonian                           # noqa: E402
 from qpc.hartree import Hartree                                   # noqa: E402
 from qpc.potential import QPCParams                               # noqa: E402
 from qpc.scf import (SCFParams, SCFResult, clean_wire, external_potential,  # noqa: E402
-                     physical_xy, run_scf)
+                     lead_state, physical_xy, run_scf)
 from qpc.units import Units                                       # noqa: E402
 
 LX_NM, LY_NM, ECUT_MEV = 5000.0, 320.0, 15.0
@@ -50,7 +50,7 @@ def summarise(res, ham, U, mu_wire, label, t_run=None):
     far = np.abs(x_nm) > FAR_NM
     e0 = barrier_profile(res, ham)                       # (Nx, 2) Ha*
     print(f"\n=== {label} ===")
-    print(f"mu_wire (clean wire N=140)    : {meV(mu_wire):.5f} meV")
+    print(f"mu (leads, N=140)             : {meV(mu_wire):.5f} meV")
     print(f"converged                     : {res.converged} in {res.iterations} iterations"
           + (f", {t_run:.1f} s" if t_run is not None else ""))
     if res.history:
@@ -191,6 +191,9 @@ def main():
     mode.add_argument("--unpolarised", action="store_true")
     mode.add_argument("--B", type=float, nargs="+", help="Janak ramp, fields in T (in order)")
     mode.add_argument("--seed-b0", action="store_true")
+    ap.add_argument("--lead", choices=["interacting", "bare"], default="interacting",
+                    help="lead reference (model A / B); --unpolarised only")
+    ap.add_argument("--kT", type=float, default=0.05, help="kT in meV; --unpolarised only")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args()
     os.makedirs("results", exist_ok=True)
@@ -202,44 +205,48 @@ def main():
     run_unpolarised(args)
 
 
-def run_unpolarised(args):
-    U = Units()
-    os.makedirs("results", exist_ok=True)
-    grid = grid_from_cutoff(U.nm_to_au(LX_NM), U.nm_to_au(LY_NM), U.meV_to_au(ECUT_MEV))
-    ham = Hamiltonian(grid, U.meV_to_au(ECUT_MEV))
-    p = SCFParams(spin_polarized=False, B_T=0.0)
-    hart = Hartree(grid, p.a_metal_au(U))
-    q = QPCParams(hbar_wx_meV=args.wx)
+def unpol_path(wx, lead="interacting", kT=0.05):
+    """results/qpc_wx{wx}_unpol[_bare][_kT{kT}].npz (model A at kT = 0.05: the M5.2 file)."""
+    return (f"results/qpc_wx{wx}_unpol" + ("" if lead == "interacting" else "_bare")
+            + ("" if kT == 0.05 else f"_kT{kT}") + ".npz")
 
-    # interacting clean wire (exact block states), fixed N = 140 -> mu_wire, start density
+
+def unpolarised_state(wx, lead="interacting", kT=0.05, force=False, verbose=True):
+    """Converged UNPOLARISED QPC at B = 0, fixed mu of the leads of model `lead` (computed and
+    saved if missing). Returns (res, lead_obj, mu, ham, hart, grid, q, t_run)."""
+    U, grid, ham, hart, q = setup(wx)
+    p = SCFParams(spin_polarized=False, B_T=0.0, kT=kT, lead_reference=lead)
     t0 = time.perf_counter()
-    pw = dataclasses.replace(p, method="wire")
-    wire = run_scf(ham, hart, external_potential(grid, q, include_qpc=False), pw,
-                   N=N1D_NM * LX_NM, verbose=False)
-    print(f"clean wire: converged {wire.converged} in {wire.iterations} it, "
-          f"mu_wire = {U.au_to_meV(wire.mu):.5f} meV ({time.perf_counter() - t0:.1f} s)")
-
-    out = f"results/qpc_wx{args.wx}_unpol.npz"
-    ckpt = f"results/qpc_wx{args.wx}_unpol_ckpt.npz"
+    lead_obj, mu, V_ext = lead_state(ham, hart, q, p, N1D_NM * LX_NM)
+    print(f"leads ({lead}): mu = {U.au_to_meV(mu):.5f} meV ({time.perf_counter() - t0:.1f} s)", flush=True)
+    out = unpol_path(wx, lead, kT)
+    ckpt = out.replace(".npz", "_ckpt.npz")
     t_run = None
-    if os.path.exists(out) and not args.force and SCFResult.load_npz(out).converged:
-        print(f"{out} exists and is converged; loading (use --force to recompute)")
+    if os.path.exists(out) and not force and SCFResult.load_npz(out).converged:
+        print(f"{out} exists and is converged; loading (use --force to recompute)", flush=True)
         res = SCFResult.load_npz(out)
     else:
-        n_init = (wire.n_up, wire.n_dn)
-        if os.path.exists(ckpt) and not args.force:
+        n_init = (lead_obj.n_up, lead_obj.n_dn)
+        if os.path.exists(ckpt) and not force:
             z = np.load(ckpt)
             n_init = (z["n_up"], z["n_dn"])
-            print(f"resuming from checkpoint {ckpt} (iteration {int(z['it'])})")
+            print(f"resuming from checkpoint {ckpt} (iteration {int(z['it'])})", flush=True)
         t0 = time.perf_counter()
-        res = run_scf(ham, hart, external_potential(grid, q), p, mu=wire.mu, n_init=n_init,
-                      checkpoint=ckpt, checkpoint_every=1)
+        res = run_scf(ham, hart, V_ext, p, mu=mu, n_init=n_init, checkpoint=ckpt,
+                      checkpoint_every=1, verbose=verbose)
         t_run = time.perf_counter() - t0
         res.save_npz(out)
-        print(f"saved {out}")
-    summarise(res, ham, U, wire.mu,
-              f"QPC hbar w_x = {args.wx} meV, unpolarised, B = 0, fixed mu = mu_wire", t_run)
+        print(f"saved {out}", flush=True)
+    return res, lead_obj, mu, ham, hart, grid, q, t_run
 
+
+def run_unpolarised(args):
+    U = Units()
+    res, lead_obj, mu, ham, hart, grid, q, t_run = unpolarised_state(args.wx, args.lead, args.kT,
+                                                                     args.force)
+    model = "A (interacting leads)" if args.lead == "interacting" else "B (bare leads, delta formulation)"
+    summarise(res, ham, U, mu, f"QPC hbar w_x = {args.wx} meV, unpolarised, B = 0, model {model}, "
+                               f"kT = {args.kT} meV", t_run)
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-# Overnight summary (2026-10-05 06:26)
+# Overnight summary (2026-10-05 06:27)
 
 Columns: M_loc (local moment), M_win (|x|<300 nm), zeta0 = spin polarisation of n_1D at x = 0, n1d0 [1e-2 nm^-1], barrier heights in meV above e_0(far) as height@x(nm), e0up(0) = spin-up value at x = 0, D_dn = top_dn - top_unpol, D_up0 = e0up(0) - top_unpol, LDOS (eta 0.05/0.1 mean): resonance e - mu, Gamma = FWHM_fit - 2 eta, U (HMW definition), all meV.
 
@@ -357,7 +357,23 @@ C_quad_wx2.0                 lambda(2-step, last 5) = 0.7780   r_40 = 0.9593
 
 ## Grand potential Omega_pol - Omega_unpol at B = 0
 
-(none yet)
+- A_exch_wx1.0: Omega_pol - Omega_unpol (B = 0) = -0.02397 meV
+- A_exch_wx1.25: Omega_pol - Omega_unpol (B = 0) = -0.01753 meV
+- A_exch_wx1.5: Omega_pol - Omega_unpol (B = 0) = -0.01159 meV
+- A_exch_wx1.5_ecut20: Omega_pol - Omega_unpol (B = 0) = -0.01386 meV
+- A_exch_wx1.5_kT0.03: Omega_pol - Omega_unpol (B = 0) = -0.03705 meV
+- A_exch_wx1.5_kT0.08: Omega_pol - Omega_unpol (B = 0) = -0.00742 meV
+- A_exch_wx1.5_lx7500: Omega_pol - Omega_unpol (B = 0) = -0.01164 meV
+- A_exch_wx1.75: Omega_pol - Omega_unpol (B = 0) = -0.00643 meV
+- A_exch_wx2.0: Omega_pol - Omega_unpol (B = 0) = -0.00249 meV
+- A_pow1.3333_wx1.5: Omega_pol - Omega_unpol (B = 0) = -0.02472 meV
+- A_quad_wx1.0: Omega_pol - Omega_unpol (B = 0) = +0.00261 meV
+- C_exch_wx1.0: Omega_pol - Omega_unpol (B = 0) = -0.03215 meV
+- C_exch_wx1.25: Omega_pol - Omega_unpol (B = 0) = -0.02244 meV
+- C_exch_wx1.5: Omega_pol - Omega_unpol (B = 0) = -0.01358 meV
+- C_exch_wx1.75: Omega_pol - Omega_unpol (B = 0) = -0.00637 meV
+- C_exch_wx2.0: Omega_pol - Omega_unpol (B = 0) = -0.00168 meV
+- C_quad_wx1.0: Omega_pol - Omega_unpol (B = 0) = -0.00427 meV
 
 ## Unconverged states (maxiter reached)
 

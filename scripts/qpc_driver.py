@@ -5,6 +5,7 @@ Folder: results/<model>_<interp>_wx<W>[_<tag>]/ with
   wire_B<B>.npz / .json       clean-wire lead state at field B (model A/C: interacting; B: bare reference)
   B<B>.npz / B<B>.json        QPC state at field B (+ LDOS arrays); B<B>_ckpt.npz checkpoint (every 25 it)
   spin_gain.json, energies.json
+  B<B>_levels.txt             (only with --level-diag) per iteration: M_loc and the KS levels near mu
 Models: A = interacting leads; B = bare leads (delta formulation, non-interacting reference);
         C = A with hartree_scale = 0.8 (SENSITIVITY knob, not physical).
 A field is skipped when B<B>.json exists with "finished": true (converged, or maxiter reached:
@@ -67,17 +68,38 @@ def jdump(path, d):
     os.replace(path + ".tmp", path)
 
 
+LEVEL_HDR = "it M_loc cnt_up cnt_dn dmin_up dmin_dn"
+
+
+def level_crossing_stats(rows, n_last=100):
+    """Swings of M_loc vs changes of the number of KS levels within +-0.1 meV of mu (as in
+    scripts/b0_rerun.py for A_quad_wx1.0). rows: (it, M_loc, cnt_up, cnt_dn, dmin_up, dmin_dn) per
+    iteration (KS output). Over the last n_last iterations: mean / std of M_loc; a 'swing' is a step
+    with |dM_loc| > std; it 'coincides with a level crossing' if cnt_up + cnt_dn changes in that step."""
+    t = np.asarray(rows, dtype=float)[-n_last:]
+    m = t[:, 1]
+    dM = np.abs(np.diff(m))
+    dcnt = np.abs(np.diff(t[:, 2])) + np.abs(np.diff(t[:, 3]))
+    big = dM > m.std()
+    corr = float(np.corrcoef(dM, dcnt)[0, 1]) if dcnt.std() > 0 and dM.std() > 0 else float("nan")
+    return dict(n=int(t.shape[0]), mean=float(m.mean()), std=float(m.std()), min=float(m.min()),
+                max=float(m.max()), swings=int(big.sum()), swings_with_count_change=int(np.sum(big & (dcnt >= 1))),
+                count_changes=int(np.sum(dcnt >= 1)), corr_dM_dcount=corr,
+                min_abs_dmin_meV=float(np.min(np.abs(t[:, 4:6]))))
+
+
 def lorentz_c(e, A, e0, w, c):
     return A * (0.5 * w) ** 2 / ((e - e0) ** 2 + (0.5 * w) ** 2) + c
 
 
 class Folder:
     def __init__(self, model, interp, wx, ecut=15.0, lx=5000.0, kT=0.05, maxiter=300, tag=None,
-                 log=print):
+                 log=print, level_diag=False):
         self.model, self.interp, self.wx = model, interp, float(wx)
         self.ecut, self.lx, self.kT, self.maxiter = float(ecut), float(lx), float(kT), int(maxiter)
         self.tag = tag
         self.log = log
+        self.level_diag = bool(level_diag)
         name = f"{model}_{interp_short(interp)}_wx{self.wx}" + (f"_{tag}" if tag else "")
         self.dir = os.path.join("results", name)
         os.makedirs(self.dir, exist_ok=True)
@@ -153,9 +175,29 @@ class Folder:
             n_init = (z["n_up"], z["n_dn"])
             resumed = int(z["it"])
             self.log(f"[{name}] resuming from checkpoint (iteration {resumed})")
+        cb = None
+        if self.level_diag and name.startswith("B"):
+            w = getattr(self.lead(p.B_T)[0], "res", self.lead(p.B_T)[0])
+            dA = self.grid.dx * self.grid.dy
+            M_wire = float((w.n_up - w.n_dn).sum() * dA)
+            fh = open(self.path(name + "_levels.txt"), "a")
+            if fh.tell() == 0:
+                fh.write("# " + LEVEL_HDR + "  (KS output per iteration; a resumed run appends)\n")
+            meV = self.U.au_to_meV
+
+            def cb(it, M_in, M_out, n_in, n_out, eigs, mu_it):
+                cnt, dmin = [], []
+                for e in eigs:
+                    d = meV(np.asarray(e)) - meV(mu_it)
+                    cnt.append(int(np.sum(np.abs(d) <= 0.1)))
+                    dmin.append(float(d[np.argmin(np.abs(d))]))
+                fh.write(f"{it + resumed} {M_out - M_wire:.6f} {cnt[0]} {cnt[1]} {dmin[0]:+.5f} {dmin[1]:+.5f}\n")
+                fh.flush()
         t0 = time.perf_counter()
         res = run_scf(self.ham, self.hart, V_ext, p, mu=mu, n_init=n_init, checkpoint=ckpt,
-                      checkpoint_every=25, verbose=True)
+                      checkpoint_every=25, verbose=True, callback=cb)
+        if cb is not None:
+            fh.close()
         return res, time.perf_counter() - t0, resumed
 
     def unpol(self):
@@ -268,6 +310,11 @@ class Folder:
             Ms = np.array([h[4] for h in res.history])[-100:] - M_wire
             info["M_loc_last100"] = dict(mean=float(Ms.mean()), std=float(Ms.std()),
                                          min=float(Ms.min()), max=float(Ms.max()), n=int(Ms.size))
+            lv = self.path(name + "_levels.txt")
+            if os.path.exists(lv):
+                rows = np.loadtxt(lv, ndmin=2)
+                if rows.shape[0] >= 3:
+                    info["level_crossing_last100"] = level_crossing_stats(rows)
         arrays = {}
         if ldos:
             try:
@@ -363,15 +410,15 @@ class Folder:
         self.log(f"[spin_gain] {self.dir}: lambda = {lam:.4f}, r_{r.size} = {r[-1]:.4f}")
         return info
 
-    def energies(self):
-        """Omega_pol(B=0) - Omega_unpol (only if B0 has M_loc > 0.3)."""
+    def energies(self, min_mloc=0.3):
+        """Omega_pol(B=0) - Omega_unpol (only if B0 has M_loc > min_mloc; default 0.3)."""
         from qpc.energy import total_energy
         if not self.done("B0"):
             self.log("[energies] no B0 state; skipped")
             return None
         j = json.load(open(self.path("B0.json")))
-        if j["M_loc"] <= 0.3:
-            self.log(f"[energies] M_loc(B=0) = {j['M_loc']:.3f} <= 0.3; skipped")
+        if j["M_loc"] <= min_mloc:
+            self.log(f"[energies] M_loc(B=0) = {j['M_loc']:.3f} <= {min_mloc}; skipped")
             return None
         lead, mu, V_ext = self.lead(0.0)
         out = {}
@@ -407,10 +454,13 @@ def main(argv=None):
     ap.add_argument("--wire-check", type=float, nargs="*", default=None)
     ap.add_argument("--spin-gain", type=int, default=None, metavar="N_IT")
     ap.add_argument("--energies", action="store_true")
+    ap.add_argument("--energies-all", action="store_true", help="with --energies: no M_loc > 0.3 condition")
+    ap.add_argument("--level-diag", action="store_true",
+                    help="record KS levels near mu per iteration (B<B>_levels.txt) + crossing statistics")
     a = ap.parse_args(argv)
     print(f"[run_qpc] {' '.join(sys.argv)}  ({time.ctime()})", flush=True)
     F = Folder(a.model, a.interp, a.wx, a.ecut, a.lx, a.kT, a.maxiter, a.tag,
-               log=lambda m: print(m, flush=True))
+               log=lambda m: print(m, flush=True), level_diag=a.level_diag)
     if a.wire_check is not None:
         return F.wire_check(a.wire_check)
     if a.unpol_only:
@@ -420,7 +470,7 @@ def main(argv=None):
     if a.spin_gain is not None:
         return F.spin_gain(a.spin_gain)
     if a.energies:
-        return F.energies()
+        return F.energies(min_mloc=-np.inf if a.energies_all else 0.3)
     if a.B:
         return F.ramp(a.B, start_from=a.start_from, up_from=a.up_from)
     ap.error("nothing to do (give --B, --unpol-only, --postprocess, --wire-check, --spin-gain or --energies)")

@@ -1,4 +1,6 @@
-"""PRL-style figures from results/ only (works with whatever exists). Untagged folders only.
+"""PRL-style figures from results/ only (works with whatever exists). Untagged folders only, unless
+--tags T1,T2 is given: then only folders with those tags, files named ..._<tag>.png
+(e.g. python scripts/make_figs.py --tags lx10000_kT0.02 -> fig1_C_exch_lx10000_kT0.02.png).
 
 fig1_<model>_<interp>.png  PRL Fig. 1: one column per available wx (B = 0 states). Top: e_0,s(x) - e_0(far)
     (solid up, dashed down), x in [-380, 380] nm, -0.3 ... 1.6 meV, mu arrow on the left; LDOS(x = 0)
@@ -30,7 +32,7 @@ from qpc.units import Units                                      # noqa: E402
 INK, MUTED, GRID = "#1a1a1a", "#6b6b6b", "#e6e6e6"
 U = Units()
 _HAM = {}
-PAT = re.compile(r"^([ABC])_([a-z0-9.]+)_wx([0-9.]+)$")
+PAT = re.compile(r"^([ABC])_([a-z0-9.]+)_wx([0-9]+\.[0-9]+)(?:_(.+))?$")
 
 
 def ham_for(ecut, lx):
@@ -47,16 +49,21 @@ def style(a):
     a.tick_params(colors=MUTED)
 
 
-def folders():
+def folders(tags=None):
+    """{(model, interp, tag): [(wx, dir)]}; tag None = untagged folders (the default set)."""
     out = {}
     for d in sorted(glob.glob("results/*/")):
         m = PAT.match(os.path.basename(d.rstrip("/")))
-        if m:
-            out.setdefault((m.group(1), m.group(2)), []).append((float(m.group(3)), d))
+        if m and (m.group(4) is None if tags is None else m.group(4) in tags):
+            out.setdefault((m.group(1), m.group(2), m.group(4)), []).append((float(m.group(3)), d))
     return out
 
 
-def fig1(model, interp, items):
+def sfx(tag):
+    return f"_{tag}" if tag else ""
+
+
+def fig1(model, interp, items, tag=None):
     cols = [(wx, d) for wx, d in sorted(items) if os.path.exists(d + "B0.json") and os.path.exists(d + "B0.npz")]
     if not cols:
         return
@@ -112,13 +119,13 @@ def fig1(model, interp, items):
             a2.set_ylabel(r"$n_{1D}$ ($10^{-2}$ nm$^{-1}$)")
             a1.legend(loc="upper left", frameon=False, fontsize=7)
             a2.legend(loc="upper left", ncol=2, frameon=False, fontsize=7)
-    fig.suptitle(f"model {model}, interp {interp}, B = 0", fontsize=10, color=INK, y=1.03)
+    fig.suptitle(f"model {model}, interp {interp}{', ' + tag if tag else ''}, B = 0", fontsize=10, color=INK, y=1.03)
     os.makedirs("figures", exist_ok=True)
-    fig.savefig(f"figures/fig1_{model}_{interp}.png", dpi=180, bbox_inches="tight")
+    fig.savefig(f"figures/fig1_{model}_{interp}{sfx(tag)}.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 
 
-def fig2(model, interp, d):
+def fig2(model, interp, d, tag=None):
     js = []
     for p in glob.glob(d + "B*.json"):
         try:
@@ -149,12 +156,13 @@ def fig2(model, interp, d):
     a.set_ylabel(r"LDOS at $x = 0$ (offset)")
     a.set_yticks([])
     style(a)
-    a.set_title(f"model {model}, interp {interp}, $\\hbar\\omega_x$ = 1.5 meV", fontsize=9, color=INK)
-    fig.savefig(f"figures/fig2_{model}_{interp}_wx1.5.png", dpi=180, bbox_inches="tight")
+    a.set_title(f"model {model}, interp {interp}{', ' + tag if tag else ''}, $\\hbar\\omega_x$ = 1.5 meV",
+                fontsize=9, color=INK)
+    fig.savefig(f"figures/fig2_{model}_{interp}_wx1.5{sfx(tag)}.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 
 
-def fig3(model, interp, items):
+def fig3(model, interp, items, tag=None):
     pts = []
     for wx, d in sorted(items):
         if os.path.exists(d + "B0.json"):
@@ -174,15 +182,19 @@ def fig3(model, interp, items):
     a.set_ylabel("energy (meV)")
     a.legend(frameon=False, fontsize=8)
     style(a)
-    a.set_title(f"model {model}, interp {interp}, B = 0", fontsize=9, color=INK)
-    fig.savefig(f"figures/fig3_{model}_{interp}.png", dpi=180, bbox_inches="tight")
+    a.set_title(f"model {model}, interp {interp}{', ' + tag if tag else ''}, B = 0", fontsize=9, color=INK)
+    fig.savefig(f"figures/fig3_{model}_{interp}{sfx(tag)}.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--tags", default=None, help="comma-separated folder tags (default: untagged folders)")
+    a = ap.parse_args()
     made = []
-    for (model, interp), items in folders().items():
-        for fn, args in ((fig1, (model, interp, items)), (fig3, (model, interp, items))):
+    for (model, interp, tag), items in folders(a.tags.split(",") if a.tags else None).items():
+        for fn, args in ((fig1, (model, interp, items, tag)), (fig3, (model, interp, items, tag))):
             try:
                 fn(*args)
             except Exception as exc:
@@ -190,10 +202,10 @@ def main():
         for wx, d in items:
             if abs(wx - 1.5) < 1e-9:
                 try:
-                    fig2(model, interp, d)
+                    fig2(model, interp, d, tag)
                 except Exception as exc:
                     print(f"fig2 {model} {interp}: {exc!r}")
-        made.append(f"{model}_{interp}")
+        made.append(f"{model}_{interp}{sfx(tag)}")
     print(f"figures for: {', '.join(made) or 'nothing yet'}")
 
 

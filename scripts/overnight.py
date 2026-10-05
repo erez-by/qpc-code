@@ -116,17 +116,20 @@ def say(msg):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
 
 
-def git_sync(job):
+def git_sync(job, msg=None, extra=()):
+    """git add notes figures results/*/*.json (+ extra paths, forced), commit, push (3 tries)."""
     def run(c):
         return subprocess.run(c, cwd=ROOT, capture_output=True, text=True)
     run(["git", "add", "notes", "figures"])
     jsons = glob.glob(os.path.join(ROOT, "results", "*", "*.json"))
     if jsons:
         run(["git", "add", "-f"] + [os.path.relpath(p, ROOT) for p in jsons])
+    if extra:
+        run(["git", "add", "-f"] + [os.path.relpath(p, ROOT) for p in extra])
     if run(["git", "diff", "--cached", "--quiet"]).returncode == 0:
         say(f"{job}: nothing to commit")
         return
-    c = run(["git", "commit", "-m", f"overnight: {job}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"])
+    c = run(["git", "commit", "-m", f"{msg or 'overnight: ' + job}\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"])
     say(f"{job}: commit {'ok' if c.returncode == 0 else 'FAILED: ' + c.stderr.strip()[:200]}")
     for k in range(3):
         p = run(["git", "push", "-q", "origin", "HEAD"])

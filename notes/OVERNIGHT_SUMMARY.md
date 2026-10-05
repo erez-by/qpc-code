@@ -1,4 +1,4 @@
-# Overnight summary (2026-10-05 06:27)
+# Overnight summary (2026-10-05 09:46)
 
 Columns: M_loc (local moment), M_win (|x|<300 nm), zeta0 = spin polarisation of n_1D at x = 0, n1d0 [1e-2 nm^-1], barrier heights in meV above e_0(far) as height@x(nm), e0up(0) = spin-up value at x = 0, D_dn = top_dn - top_unpol, D_up0 = e0up(0) - top_unpol, LDOS (eta 0.05/0.1 mean): resonance e - mu, Gamma = FWHM_fit - 2 eta, U (HMW definition), all meV.
 
@@ -319,30 +319,30 @@ PRL targets (user's readings, polarised, B = 0):
 
 ## Clean wire (B = 0) per folder
 
-| folder | mu | e1-e0 | mu-e0 | N(subband 1) | hartree_scale |
-|---|---|---|---|---|---|
-| A_exch_wx1.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_exch_wx1.25 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_exch_wx1.5 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_exch_wx1.5_ecut20 | 8.9564 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_exch_wx1.5_kT0.03 | 8.9764 | 0.951 | 0.943 | 10.45 | 1.0 |
-| A_exch_wx1.5_kT0.08 | 8.9258 | 0.960 | 0.910 | 13.10 | 1.0 |
-| A_exch_wx1.5_lx7500 | 8.9565 | 0.954 | 0.930 | 17.19 | 1.0 |
-| A_exch_wx1.75 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_exch_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_pow1.3333_wx1.5 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_quad_wx1.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| A_quad_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
-| B_exch_wx1.0 | 2.1019 | 2.000 | 1.102 | 0.00 | 1.0 |
-| B_exch_wx1.5 | 2.1019 | 2.000 | 1.102 | 0.00 | 1.0 |
-| C_exch_wx1.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
-| C_exch_wx1.25 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
-| C_exch_wx1.5 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
-| C_exch_wx1.75 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
-| C_exch_wx2.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
-| C_quad_wx1.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
-| C_quad_wx1.5 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
-| C_quad_wx2.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
+| folder | mu | e1-e0 | mu-e0 | N(subband 1) | hartree_scale | kT |
+|---|---|---|---|---|---|---|
+| A_exch_wx1.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_exch_wx1.25 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_exch_wx1.5 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_exch_wx1.5_ecut20 | 8.9564 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_exch_wx1.5_kT0.03 | 8.9764 | 0.951 | 0.943 | 10.45 | 1.0 | 0.03 |
+| A_exch_wx1.5_kT0.08 | 8.9258 | 0.960 | 0.910 | 13.10 | 1.0 | 0.08 |
+| A_exch_wx1.5_lx7500 | 8.9565 | 0.954 | 0.930 | 17.19 | 1.0 | 0.05 |
+| A_exch_wx1.75 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_exch_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_pow1.3333_wx1.5 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_quad_wx1.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| A_quad_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 | 0.05 |
+| B_exch_wx1.0 | 2.1019 | 2.000 | 1.102 | 0.00 | 1.0 | 0.05 |
+| B_exch_wx1.5 | 2.1019 | 2.000 | 1.102 | 0.00 | 1.0 | 0.05 |
+| C_exch_wx1.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
+| C_exch_wx1.25 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
+| C_exch_wx1.5 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
+| C_exch_wx1.75 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
+| C_exch_wx2.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
+| C_quad_wx1.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
+| C_quad_wx1.5 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
+| C_quad_wx2.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 | 0.05 |
 
 ## Spin gain (B = 0, linear mixing, 1 % seed)
 ```
@@ -378,3 +378,46 @@ C_quad_wx2.0                 lambda(2-step, last 5) = 0.7780   r_40 = 0.9593
 ## Unconverged states (maxiter reached)
 
 - A_quad_wx1.0 B = 0: 300 it, M_loc last100 mean 0.952 std 0.055 (min 0.827, max 1.128)
+
+
+# Low-temperature test: model C, exchange, kT = 0.02 meV (Lx 5000 and 10000 nm)
+
+Everything else as in C_exch (E_cut 15 meV, Ly 320 nm, Pulay, tol 1e-4); N = n_1D Lx (fixed n_1D = 2.8e-2 nm^-1). 'seeded': B = 0 started from a converged state (scripts/lowT_quick.py), 'ramp': Janak ramp 6 T -> 0 (scripts/lowT.py). Same columns as above.
+
+### C_exch_wx2.0_kT0.02
+
+unpolarised B = 0: top 1.093 meV, n1d0 0.937, mu - e0(far) 1.099, converged True (17 it)
+
+| B | conv | it | M_loc | M_win | zeta0 | n1d0 | up peaks | e0up(0) | dn peaks | D_dn | D_up0 | mu-e0far | res-mu | Gamma | U |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | y | 28 | 0.649 | 0.606 | 0.65 | 0.938 | 0.15@-57 0.79@+0 0.15@+57 | 0.791 | 1.43@+0 | +0.333 | -0.302 | 1.099 | -0.459 | 1.880 | 0.487 |
+
+### B = 0: kT = 0.02 meV, Lx = 10000 nm vs kT = 0.05 meV, Lx = 5000 nm
+
+| wx | run | conv | it | M_loc | M_win | zeta0 | n1d0 | up peaks | dn peaks | mu-e0far | res-mu | Gamma | U | dOmega |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2.0 | kT 0.05, Lx 5000 (ramp) | y | 20 | 0.476 | 0.461 | 0.54 | 0.936 | 0.14@-57 0.83@+0 0.14@+57 | 1.34@+0 | 1.072 | -0.355 | 1.860 | 0.385 | -0.00168 |
+| 2.0 | kT 0.02, Lx 5000 (B=0 seeded) | y | 28 | 0.649 | 0.606 | 0.65 | 0.938 | 0.15@-57 0.79@+0 0.15@+57 | 1.43@+0 | 1.099 | -0.459 | 1.880 | 0.487 | -0.00432 |
+| 1.5 | kT 0.05, Lx 5000 (ramp) | y | 19 | 0.834 | 0.827 | 0.81 | 1.101 | 0.29@-67 0.45@+0 0.29@+67 | 1.41@+0 | 1.072 | -0.574 | 0.338 | 0.760 | -0.01358 |
+| 1.0 | kT 0.05, Lx 5000 (ramp) | y | 15 | 1.094 | 1.118 | 0.92 | 1.224 | 0.53@-86 0.16@+0 0.53@+86 | 0.23@-124 1.42@+0 0.23@+124 | 1.072 | -0.792 | 0.045 | 1.095 | -0.03215 |
+
+PRL (T = 0.1 K): net spin 0.85 (1.0), 0.93 (1.5), 0.90 (2.0) meV; mu - e_0(far) ~ 1.1 meV
+
+### Clean wire (B = 0) per folder
+
+| folder | mu | e1-e0 | mu-e0 | N(subband 1) | hartree_scale | kT |
+|---|---|---|---|---|---|---|
+| C_exch_wx2.0_kT0.02 | 7.2487 | 1.198 | 1.099 | 0.12 | 0.8 | 0.02 |
+
+### Spin gain (B = 0, linear mixing, 1 % seed)
+```
+C_exch_wx2.0_kT0.02          lambda(2-step, last 5) = 1.0527   r_40 = 1.0126
+```
+
+### Grand potential Omega_pol - Omega_unpol at B = 0
+
+- C_exch_wx2.0_kT0.02: Omega_pol - Omega_unpol (B = 0) = -0.00432 meV
+
+### Unconverged states (maxiter reached)
+
+(none)

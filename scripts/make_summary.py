@@ -46,6 +46,10 @@ def bkey(name):
 
 LOWT_TAG = "lx10000_kT0.02"
 LOWT_REF = "C_exch_wx{}"                    # kT = 0.05, Lx = 5000 comparison folders
+LOWT_RUNS = (("kT 0.05, Lx 5000 (ramp)", ""),           # (label, folder tag) shown in the low-T section
+             ("kT 0.02, Lx 5000 (B=0 seeded)", "_kT0.02"),
+             ("kT 0.02, Lx 10000 (B=0 seeded)", "_lx10000_kT0.02_seed"),
+             ("kT 0.02, Lx 10000 (ramp)", "_" + LOWT_TAG))
 
 
 def folder_block(d, acc):
@@ -125,29 +129,40 @@ def tail(acc):
 
 def lowt_section():
     """Low-temperature test (model C, exchange, Lx = 10000 nm, kT = 0.02 meV) vs the kT = 0.05, Lx = 5000 runs."""
-    dirs = [f"results/C_exch_wx{w}_{LOWT_TAG}/" for w in (2.0, 1.5, 1.0)]
+    dirs = [f"results/C_exch_wx{w}{t}/" for w in (2.0, 1.5, 1.0) for _, t in LOWT_RUNS[1:]]
     dirs = [d for d in dirs if glob.glob(d + "*.json")]
     if not dirs:
         return []
     acc = dict(b0rows=[], unconv=[], wires=[], gains=[], energies=[])
-    out = ["", "# Low-temperature test: model C, exchange, Lx = 10000 nm, kT = 0.02 meV", "",
-           "Everything else as in C_exch (E_cut 15 meV, Ly 320 nm, Pulay, tol 1e-4, maxiter 300); "
-           "N = n_1D Lx (fixed n_1D = 2.8e-2 nm^-1). Same columns as above.", ""]
+    out = ["", "# Low-temperature test: model C, exchange, kT = 0.02 meV (Lx 5000 and 10000 nm)", "",
+           "Everything else as in C_exch (E_cut 15 meV, Ly 320 nm, Pulay, tol 1e-4); N = n_1D Lx (fixed "
+           "n_1D = 2.8e-2 nm^-1). 'seeded': B = 0 started from a converged state (scripts/lowT_quick.py), "
+           "'ramp': Janak ramp 6 T -> 0 (scripts/lowT.py). Same columns as above.", ""]
     for d in dirs:
         out += [l.replace("## ", "### ", 1) if l.startswith("## ") else l for l in folder_block(d, acc)]
+        sd = load(d + "seed.json")
+        if sd:
+            out += [f"seed: {sd['source']}, maxiter {sd['maxiter']} (~{sd['t_iter_est_s']:.1f} s per iteration)", ""]
+        lv = d + "B0_levels.txt"
+        if not load(d + "B0.json") and os.path.exists(lv):
+            rows = [l.split() for l in open(lv) if l.strip() and not l.startswith("#")]
+            if rows:
+                m = [float(r[1]) for r in rows[-20:]]
+                out += [f"B = 0 UNFINISHED (time limit): {len(rows)} iterations logged, M_loc last {len(m)}: "
+                        f"mean {sum(m) / len(m):.3f}, min {min(m):.3f}, max {max(m):.3f}", ""]
     out += ["### B = 0: kT = 0.02 meV, Lx = 10000 nm vs kT = 0.05 meV, Lx = 5000 nm", "",
-            "| wx | run | conv | M_loc | zeta0 | n1d0 | up peaks | dn peaks | mu-e0far | res-mu | Gamma | U | dOmega |",
-            "|" + "---|" * 13]
+            "| wx | run | conv | it | M_loc | M_win | zeta0 | n1d0 | up peaks | dn peaks | mu-e0far | res-mu | "
+            "Gamma | U | dOmega |", "|" + "---|" * 15]
     for w in (2.0, 1.5, 1.0):
-        for lab, d in (("kT 0.05, Lx 5000", f"results/{LOWT_REF.format(w)}/"),
-                       ("kT 0.02, Lx 10000", f"results/C_exch_wx{w}_{LOWT_TAG}/")):
+        for lab, t in LOWT_RUNS:
+            d = f"results/C_exch_wx{w}{t}/"
             r = load(d + "B0.json")
             if not r:
                 continue
             L = r.get("ldos", {})
             e = load(d + "energies.json")
-            out.append(f"| {w} | {lab} | {'y' if r['converged'] else 'NO'} | {f(r['M_loc'])} | "
-                       f"{f(r['zeta0'], '{:.2f}')} | {f(100 * r['n1d_0'], '{:.3f}')} | {peaks(r['peaks_up'])} | "
+            out.append(f"| {w} | {lab} | {'y' if r['converged'] else 'NO'} | {r['iterations']} | {f(r['M_loc'])} | "
+                       f"{f(r['M_win300'])} | {f(r['zeta0'], '{:.2f}')} | {f(100 * r['n1d_0'], '{:.3f}')} | {peaks(r['peaks_up'])} | "
                        f"{peaks(r['peaks_dn'])} | {f(r['mu_e0far'])} | {f(L.get('res_e_minus_mu_mean'), '{:+.3f}')} | "
                        f"{f(L.get('Gamma_mean'))} | {f(L.get('U_mean'))} | "
                        f"{f(e['dOmega_meV'], '{:+.5f}') if e else '-'} |")
@@ -160,8 +175,8 @@ def lowt_section():
 
 
 def main():
-    folders = sorted(d for d in glob.glob("results/*/") if glob.glob(d + "*.json")
-                     and not d.rstrip("/").endswith("_" + LOWT_TAG))
+    lowt = tuple(f"results/C_exch_wx{w}{t}/" for w in (2.0, 1.5, 1.0) for _, t in LOWT_RUNS[1:])
+    folders = sorted(d for d in glob.glob("results/*/") if glob.glob(d + "*.json") and d not in lowt)
     out = [f"# Overnight summary ({time.strftime('%Y-%m-%d %H:%M')})", "",
            "Columns: M_loc (local moment), M_win (|x|<300 nm), zeta0 = spin polarisation of n_1D at x = 0, "
            "n1d0 [1e-2 nm^-1], barrier heights in meV above e_0(far) as height@x(nm), e0up(0) = spin-up value at "

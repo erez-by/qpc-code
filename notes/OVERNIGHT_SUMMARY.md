@@ -1,4 +1,4 @@
-# Overnight summary (2026-10-05 09:46)
+# Overnight summary (2026-10-05 10:06)
 
 Columns: M_loc (local moment), M_win (|x|<300 nm), zeta0 = spin polarisation of n_1D at x = 0, n1d0 [1e-2 nm^-1], barrier heights in meV above e_0(far) as height@x(nm), e0up(0) = spin-up value at x = 0, D_dn = top_dn - top_unpol, D_up0 = e0up(0) - top_unpol, LDOS (eta 0.05/0.1 mean): resonance e - mu, Gamma = FWHM_fit - 2 eta, U (HMW definition), all meV.
 
@@ -392,12 +392,23 @@ unpolarised B = 0: top 1.093 meV, n1d0 0.937, mu - e0(far) 1.099, converged True
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 0 | y | 28 | 0.649 | 0.606 | 0.65 | 0.938 | 0.15@-57 0.79@+0 0.15@+57 | 0.791 | 1.43@+0 | +0.333 | -0.302 | 1.099 | -0.459 | 1.880 | 0.487 |
 
+### C_exch_wx2.0_lx10000_kT0.02_seed
+
+unpolarised B = 0: top 1.093 meV, n1d0 0.938, mu - e0(far) 1.099, converged True (17 it)
+
+| B | conv | it | M_loc | M_win | zeta0 | n1d0 | up peaks | e0up(0) | dn peaks | D_dn | D_up0 | mu-e0far | res-mu | Gamma | U |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | y | 22 | 0.660 | 0.609 | 0.65 | 0.938 | 0.15@-57 0.79@+0 0.15@+57 | 0.790 | 1.43@+0 | +0.334 | -0.303 | 1.099 | -0.454 | 1.927 | 0.482 |
+
+seed: results/C_exch_wx2.0_kT0.02/B0.npz, maxiter 140 (~29.6 s per iteration)
+
 ### B = 0: kT = 0.02 meV, Lx = 10000 nm vs kT = 0.05 meV, Lx = 5000 nm
 
 | wx | run | conv | it | M_loc | M_win | zeta0 | n1d0 | up peaks | dn peaks | mu-e0far | res-mu | Gamma | U | dOmega |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 2.0 | kT 0.05, Lx 5000 (ramp) | y | 20 | 0.476 | 0.461 | 0.54 | 0.936 | 0.14@-57 0.83@+0 0.14@+57 | 1.34@+0 | 1.072 | -0.355 | 1.860 | 0.385 | -0.00168 |
 | 2.0 | kT 0.02, Lx 5000 (B=0 seeded) | y | 28 | 0.649 | 0.606 | 0.65 | 0.938 | 0.15@-57 0.79@+0 0.15@+57 | 1.43@+0 | 1.099 | -0.459 | 1.880 | 0.487 | -0.00432 |
+| 2.0 | kT 0.02, Lx 10000 (B=0 seeded) | y | 22 | 0.660 | 0.609 | 0.65 | 0.938 | 0.15@-57 0.79@+0 0.15@+57 | 1.43@+0 | 1.099 | -0.454 | 1.927 | 0.482 | -0.00439 |
 | 1.5 | kT 0.05, Lx 5000 (ramp) | y | 19 | 0.834 | 0.827 | 0.81 | 1.101 | 0.29@-67 0.45@+0 0.29@+67 | 1.41@+0 | 1.072 | -0.574 | 0.338 | 0.760 | -0.01358 |
 | 1.0 | kT 0.05, Lx 5000 (ramp) | y | 15 | 1.094 | 1.118 | 0.92 | 1.224 | 0.53@-86 0.16@+0 0.53@+86 | 0.23@-124 1.42@+0 0.23@+124 | 1.072 | -0.792 | 0.045 | 1.095 | -0.03215 |
 
@@ -408,6 +419,7 @@ PRL (T = 0.1 K): net spin 0.85 (1.0), 0.93 (1.5), 0.90 (2.0) meV; mu - e_0(far) 
 | folder | mu | e1-e0 | mu-e0 | N(subband 1) | hartree_scale | kT |
 |---|---|---|---|---|---|---|
 | C_exch_wx2.0_kT0.02 | 7.2487 | 1.198 | 1.099 | 0.12 | 0.8 | 0.02 |
+| C_exch_wx2.0_lx10000_kT0.02_seed | 7.2487 | 1.198 | 1.099 | 0.23 | 0.8 | 0.02 |
 
 ### Spin gain (B = 0, linear mixing, 1 % seed)
 ```
@@ -417,6 +429,7 @@ C_exch_wx2.0_kT0.02          lambda(2-step, last 5) = 1.0527   r_40 = 1.0126
 ### Grand potential Omega_pol - Omega_unpol at B = 0
 
 - C_exch_wx2.0_kT0.02: Omega_pol - Omega_unpol (B = 0) = -0.00432 meV
+- C_exch_wx2.0_lx10000_kT0.02_seed: Omega_pol - Omega_unpol (B = 0) = -0.00439 meV
 
 ### Unconverged states (maxiter reached)
 

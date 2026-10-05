@@ -1,0 +1,10 @@
+{
+ "source": "results/C_exch_wx2.0_kT0.02/B0.npz",
+ "t_iter_est_s": 29.629586331997416,
+ "maxiter": 140,
+ "blend_nm": [
+  1500,
+  2000
+ ],
+ "time": "Mon Oct  5 09:51:44 2026"
+}

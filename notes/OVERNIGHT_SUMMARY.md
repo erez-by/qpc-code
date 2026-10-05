@@ -1,4 +1,4 @@
-# Overnight summary (2026-10-05 06:05)
+# Overnight summary (2026-10-05 06:26)
 
 Columns: M_loc (local moment), M_win (|x|<300 nm), zeta0 = spin polarisation of n_1D at x = 0, n1d0 [1e-2 nm^-1], barrier heights in meV above e_0(far) as height@x(nm), e0up(0) = spin-up value at x = 0, D_dn = top_dn - top_unpol, D_up0 = e0up(0) - top_unpol, LDOS (eta 0.05/0.1 mean): resonance e - mu, Gamma = FWHM_fit - 2 eta, U (HMW definition), all meV.
 
@@ -146,6 +146,11 @@ unpolarised B = 0: top 0.628 meV, n1d0 1.382, mu - e0(far) 0.930, converged True
 | 4 | y | 34 | 0.311 | 0.233 | 0.99 | 1.339 | 0.28@-95 0.28@+95 | -0.063 | 1.77@+0 | +1.140 | -0.691 | 1.004 | -0.961 | 0.020 | 1.864 |
 | 6 | y | 59 | 0.298 | 0.213 | 0.99 | 1.363 | 0.23@-105 0.23@+105 | -0.055 | 1.89@+0 | +1.259 | -0.683 | 1.026 | -1.032 | 0.005 | 2.113 |
 
+## A_quad_wx2.0
+
+unpolarised B = 0: top 0.837 meV, n1d0 1.049, mu - e0(far) 0.930, converged True (30 it)
+
+
 ## B_exch_wx1.0
 
 unpolarised B = 0: top 0.578 meV, n1d0 1.842, mu - e0(far) 1.102, converged True (16 it)
@@ -276,6 +281,11 @@ unpolarised B = 0: top 0.899 meV, n1d0 1.110, mu - e0(far) 1.072, converged True
 | 4 | y | 23 | 0.806 | 0.791 | 0.92 | 1.109 | 0.23@-76 0.41@+0 0.23@+76 | 0.406 | 1.68@+0 | +0.783 | -0.493 | 1.135 | -0.713 | 0.297 | 1.354 |
 | 6 | y | 30 | 0.827 | 0.807 | 0.95 | 1.113 | 0.19@-76 0.39@+0 0.19@+76 | 0.391 | 1.80@+0 | +0.902 | -0.508 | 1.160 | -0.807 | 0.227 | 1.570 |
 
+## C_quad_wx2.0
+
+unpolarised B = 0: top 1.074 meV, n1d0 0.926, mu - e0(far) 1.072, converged True (18 it)
+
+
 ## B = 0 of every folder vs PRL targets
 
 | folder | conv | M_loc | zeta0 | n1d0 | up peaks | e0up(0) | dn peaks | D_dn | D_up0 | mu-e0far | res-mu | Gamma | U |
@@ -322,6 +332,7 @@ PRL targets (user's readings, polarised, B = 0):
 | A_exch_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
 | A_pow1.3333_wx1.5 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
 | A_quad_wx1.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
+| A_quad_wx2.0 | 8.9565 | 0.954 | 0.930 | 11.46 | 1.0 |
 | B_exch_wx1.0 | 2.1019 | 2.000 | 1.102 | 0.00 | 1.0 |
 | B_exch_wx1.5 | 2.1019 | 2.000 | 1.102 | 0.00 | 1.0 |
 | C_exch_wx1.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
@@ -331,10 +342,17 @@ PRL targets (user's readings, polarised, B = 0):
 | C_exch_wx2.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
 | C_quad_wx1.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
 | C_quad_wx1.5 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
+| C_quad_wx2.0 | 7.2087 | 1.201 | 1.072 | 1.90 | 0.8 |
 
 ## Spin gain (B = 0, linear mixing, 1 % seed)
 ```
-(none yet)
+A_quad_wx2.0                 lambda(2-step, last 5) = 0.6262   r_40 = 0.8975
+C_exch_wx1.0                 lambda(2-step, last 5) = 1.1984   r_40 = 1.0427
+C_exch_wx1.5                 lambda(2-step, last 5) = 1.1355   r_40 = 1.0297
+C_exch_wx2.0                 lambda(2-step, last 5) = 0.9972   r_40 = 1.0025
+C_quad_wx1.0                 lambda(2-step, last 5) = 0.9529   r_40 = 0.9944
+C_quad_wx1.5                 lambda(2-step, last 5) = 0.8957   r_40 = 0.9827
+C_quad_wx2.0                 lambda(2-step, last 5) = 0.7780   r_40 = 0.9593
 ```
 
 ## Grand potential Omega_pol - Omega_unpol at B = 0

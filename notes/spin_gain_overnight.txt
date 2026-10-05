@@ -1,0 +1,8 @@
+Spin gain at B = 0 (lambda from the last 5 two-step ratios sqrt(M_(n+2)/M_n); lambda > 1 unstable)
+A_quad_wx2.0                 lambda(2-step, last 5) = 0.6262   r_40 = 0.8975
+C_exch_wx1.0                 lambda(2-step, last 5) = 1.1984   r_40 = 1.0427
+C_exch_wx1.5                 lambda(2-step, last 5) = 1.1355   r_40 = 1.0297
+C_exch_wx2.0                 lambda(2-step, last 5) = 0.9972   r_40 = 1.0025
+C_quad_wx1.0                 lambda(2-step, last 5) = 0.9529   r_40 = 0.9944
+C_quad_wx1.5                 lambda(2-step, last 5) = 0.8957   r_40 = 0.9827
+C_quad_wx2.0                 lambda(2-step, last 5) = 0.7780   r_40 = 0.9593

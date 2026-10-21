@@ -60,6 +60,9 @@ class SCFParams:
     spin_polarized: bool = True
     lead_reference: str = "interacting"   # model A (default) | "bare": model B, see lead_state
     hartree_scale: float = 1.0       # SENSITIVITY knob: V_H -> s V_H everywhere (leads, QPC, E_H); 1 = physical
+    zeeman_profile: str = "uniform"  # "uniform" (default) | "staggered": E_Z(x) = E_Z f(x), see staggered_profile
+    zeeman_w_nm: float = 20.0        # staggered: width of the central wall at x = 0
+    zeeman_we_nm: float = 200.0      # staggered: width of the compensating walls at x = +-Lx/2
 
     def a_metal_au(self, units=Units()):
         """Metal-plane distance a_m = a_image / 2 in a* (the argument of Hartree)."""
@@ -71,6 +74,33 @@ class SCFParams:
     def EZ_au(self, units=Units()):
         """Zeeman splitting E_Z = g* mu_B B in Ha*."""
         return units.meV_to_au(self.g * MU_B_MEV_PER_T * self.B_T)
+
+
+def staggered_profile(x, Lx, w, w_e):
+    """Smooth periodic sign profile of the staggered Zeeman field (two-electron spec, Phase 2):
+
+        f(x) = tanh(x / w) - tanh((x - Lx/2) / w_e) - tanh((x + Lx/2) / w_e),  x in [-Lx/2, Lx/2)
+
+    f -> +-1 on the two sides of the QPC (wall of width w at x = 0), f(+-Lx/2) = 0, and f is smooth
+    across the periodic boundary (the walls at +-Lx/2, width w_e >> w, replace the jump of a
+    minimum-image tanh, which would ring in the plane-wave basis). Same length unit for all arguments.
+    """
+    x = np.asarray(x, dtype=float)
+    return np.tanh(x / w) - np.tanh((x - 0.5 * Lx) / w_e) - np.tanh((x + 0.5 * Lx) / w_e)
+
+
+def zeeman_field(grid, p, units=Units()):
+    """E_Z on the grid [Ha*]: the scalar g* mu_B B (uniform, default; unchanged behaviour) or, for
+    p.zeeman_profile == "staggered", the array E_Z f(x) of shape (Nx, 1) (staggered_profile, x from
+    physical_xy). Enters ks_potentials as V_s -/+ E_Z / 2."""
+    EZ = p.EZ_au(units)
+    if p.zeeman_profile == "uniform":
+        return EZ
+    if p.zeeman_profile == "staggered":
+        x = min_image(grid.real_axes()[0], grid.Lx)
+        f = staggered_profile(x, grid.Lx, units.nm_to_au(p.zeeman_w_nm), units.nm_to_au(p.zeeman_we_nm))
+        return EZ * f[:, None]
+    raise ValueError(f"zeeman_profile {p.zeeman_profile!r}")
 
 
 @dataclass
@@ -234,7 +264,10 @@ def lead_state(ham, hartree, qpc_params, p, N, n_init=None, include_qpc=True):
     B and the physical parameters of p are used), so special QPC settings never leak into them.
     """
     d = SCFParams()
-    p = dataclasses.replace(p, alpha=d.alpha, history=d.history, maxiter=d.maxiter, tol=d.tol)
+    # PHYSICS-CHOICE (docs/OPEN_QUESTIONS.md #12): the leads always see the uniform field; with a
+    # staggered field the left lead is at -B, i.e. the spin-flipped wire at +B: same mu(B).
+    p = dataclasses.replace(p, alpha=d.alpha, history=d.history, maxiter=d.maxiter, tol=d.tol,
+                            zeeman_profile="uniform")
     if p.lead_reference == "interacting":
         w = clean_wire(ham, hartree, qpc_params, p, N, n_init=n_init)
         return w, w.mu, external_potential(ham.grid, qpc_params, include_qpc=include_qpc)
@@ -316,7 +349,7 @@ def run_scf(ham, hartree, V_ext, p: SCFParams, mu=None, N=None, n_init=None, X_i
     g = ham.grid
     dA = g.dx * g.dy
     kT = p.kT_au(units)
-    EZ = p.EZ_au(units)
+    EZ = zeeman_field(g, p, units)
     n_spin = 2 if p.spin_polarized else 1
     nb = int(p.nb_init)
     X_warm = list(X_init) if X_init is not None else [None, None]

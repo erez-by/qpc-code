@@ -94,33 +94,36 @@ def lorentz_c(e, A, e0, w, c):
 
 class Folder:
     def __init__(self, model, interp, wx, ecut=15.0, lx=5000.0, kT=0.05, maxiter=300, tag=None,
-                 log=print, level_diag=False):
+                 log=print, level_diag=False, V0=3.0, root="results", name=None, zeeman="uniform"):
         self.model, self.interp, self.wx = model, interp, float(wx)
         self.ecut, self.lx, self.kT, self.maxiter = float(ecut), float(lx), float(kT), int(maxiter)
         self.tag = tag
         self.log = log
         self.level_diag = bool(level_diag)
-        name = f"{model}_{interp_short(interp)}_wx{self.wx}" + (f"_{tag}" if tag else "")
-        self.dir = os.path.join("results", name)
+        self.V0, self.zeeman = float(V0), zeeman
+        if name is None:
+            name = f"{model}_{interp_short(interp)}_wx{self.wx}" + (f"_{tag}" if tag else "")
+        self.dir = os.path.join(root, name)
         os.makedirs(self.dir, exist_ok=True)
         U = self.U = Units()
         self.grid = grid_from_cutoff(U.nm_to_au(self.lx), U.nm_to_au(LY_NM), U.meV_to_au(self.ecut))
         self.ham = Hamiltonian(self.grid, U.meV_to_au(self.ecut))
         p0 = self.params(0.0)
         self.hart = Hartree(self.grid, p0.a_metal_au(U), verbose=False)
-        self.q = QPCParams(hbar_wx_meV=self.wx)
+        self.q = QPCParams(hbar_wx_meV=self.wx, V0_meV=self.V0)
         self.N = N1D_NM * self.lx
         x_nm = U.au_to_nm(min_image(self.grid.real_axes()[0], self.grid.Lx))
         self.x_nm = x_nm
         self.far_nm = 0.3 * self.lx
         self._leads = {}
-        log(f"[folder] {self.dir}: grid {self.grid.Nx}x{self.grid.Ny}, n_pw {self.ham.n_pw}, N = {self.N:g}, "
+        log(f"[folder] {self.dir}: V0 = {self.V0} meV, d = {self.U.au_to_nm(self.q.d):.0f} nm, Zeeman {zeeman}, "
+            f"grid {self.grid.Nx}x{self.grid.Ny}, n_pw {self.ham.n_pw}, N = {self.N:g}, "
             f"kT = {self.kT}, maxiter = {self.maxiter}")
 
     # ------------------------------------------------------------------ helpers
     def params(self, B, polarized=True, **kw):
         base = dict(B_T=float(B), kT=self.kT, interp=self.interp, maxiter=self.maxiter,
-                    spin_polarized=polarized, **MODELS[self.model])
+                    spin_polarized=polarized, zeeman_profile=self.zeeman, **MODELS[self.model])
         base.update(kw)
         return SCFParams(**base)
 
@@ -297,7 +300,8 @@ class Folder:
         nu0, nd0 = f["n1d_0_s"]
         tu = self.top_unpol()
         top_dn = max([h for _, h in f["peaks"][1]] + [f["centre"][1]])
-        info = dict(name=name, B=B, model=self.model, interp=self.interp, wx=self.wx, ecut=self.ecut, lx=self.lx,
+        info = dict(name=name, B=B, model=self.model, interp=self.interp, wx=self.wx, V0=self.V0,
+                    zeeman=self.zeeman, ecut=self.ecut, lx=self.lx,
                     kT=self.kT, tag=self.tag, finished=True, converged=bool(res.converged),
                     iterations=int(res.iterations), resumed_from_it=resumed, time=t,
                     mu_meV=U.au_to_meV(res.mu), mu_e0far=f["mu_e0far"][0], N=float(res.N), M=M, M_wire=M_wire,

@@ -55,3 +55,15 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
     the lead screening; default 1.0 unchanged.
 11. **Grand potential (qpc/energy.py):** Omega = E - kT S - mu N with E in eigenvalue form; the eigenvalue
     and direct forms agree to 1e-8 (tests/test_energy.py). Used for Omega_pol - Omega_unpol at B = 0 (J19).
+12. **Staggered Zeeman field (two-electron spec, Phase 2).** `SCFParams.zeeman_profile = "staggered"` gives
+    E_Z(x) = E_Z f(x), f(x) = tanh(x/w) - tanh((x - Lx/2)/w_e) - tanh((x + Lx/2)/w_e), w = 20 nm, w_e = 200 nm
+    (user's choice): smooth across the periodic cell boundary (a minimum-image tanh jumps there and rings in the
+    plane-wave basis), so the cell holds a second, wide wall at x = +-Lx/2, far from the QPC. Default "uniform"
+    unchanged (regression test against a state recorded before the option existed). The leads (clean wire,
+    mu(B)) always use the uniform field: the left lead at -B is the spin-flipped wire at +B, same mu.
+13. **Lobe detection (qpc/analysis_moments.py).** Spec: peaks of +-s with prominence > 0.3e-2 nm^-1, integrated
+    between the neighbouring zeros of s. Added: (a) the peak itself must reach half of that threshold (a flat
+    s = 0 stretch or a tiny lobe between two opposite lobes has a large prominence but is not a lobe); (b) two
+    same-sign lobes without a zero between them (P case) are split at the minimum of |s|, so their spins are
+    not double counted; (c) D is the connected part of {n < 0.9 n_lead} that contains the minimum of n;
+    (d) a single lobe is "broad" (kT = 0.02 rerun candidate) when its width between zeros exceeds L_D / 2.

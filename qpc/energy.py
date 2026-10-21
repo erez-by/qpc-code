@@ -18,7 +18,7 @@ Grand potential at fixed mu, Fermi-Dirac smearing:
 import numpy as np
 
 from .occupation import density, fermi
-from .scf import _per_spin
+from .scf import _per_spin, zeeman_field
 from .xc import exc_vxc
 
 
@@ -36,7 +36,7 @@ def total_energy(res, ham, hartree, V_ext, p, units=None):
     """
     g = ham.grid
     dA = g.dx * g.dy
-    kT, EZ = p.kT_au(), p.EZ_au()
+    kT, EZ = p.kT_au(), zeeman_field(g, p)
     Vext = _per_spin(V_ext)
     Z = [-0.5 * EZ, 0.5 * EZ]
     n, sum_fe, Ts, TS, Eext, EZt, Vterm = [], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
@@ -51,7 +51,7 @@ def total_energy(res, ham, hartree, V_ext, p, units=None):
         Ts += weight * float(np.sum(f * (np.abs(X) ** 2 * ham.kinetic[:, None]).sum(axis=0)))
         TS += weight * kT * _entropy(f)
         Eext += weight * float(np.sum(ns * Vext[s])) * dA
-        EZt += weight * Z[s] * float(ns.sum()) * dA
+        EZt += weight * (Z[s] * float(ns.sum()) if np.isscalar(Z[s]) else float(np.sum(ns * Z[s]))) * dA
         Vterm += weight * float(np.sum(ns * res.V[s])) * dA
         n.append(ns)
     if spins == 1:

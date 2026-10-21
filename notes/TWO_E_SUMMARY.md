@@ -1,4 +1,4 @@
-# Two-electron scan, Phase 1 (2026-10-21 11:54)
+# Two-electron scan, Phase 1 (2026-10-21 13:08)
 
 Model C, exchange, E_cut 15 meV, Ly 320 nm, uniform field, ramp 5 -> 0 T. B = 0 states. L_D: length of D = {n < 0.9 n_lead} [nm]; N_D electrons in D; lobes in D as x(spin) [nm (e)]; Friedel: mean same-sign spacing of the lobes outside D vs pi/k_F = 2/n_lead [nm]; eps0max-mu: top of eps_0,s(x) minus mu (up/dn) [meV]; dOmega = Omega_pol - Omega_unpol [meV]; LDOS peaks below mu at the lobes (up/dn).
 
@@ -6,6 +6,7 @@ class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 pe
 
 | case | d | conv/it | M_loc | net spin | L_D | N_D | class (raw) | moments x(spin) | satellites | broad | Friedel / 2/n | eps0max-mu | dOmega | LDOS pk<mu |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C_exch_wx0.7_V3.0 | 118 | NO/300 | 2.136 | 2.136 | 352 | 6.844 | single (multi5) | +0(+2.36) | -162(+0.11) -114(-0.18) +114(-0.18) +162(+0.11) | y | 76 / 71 | -0.448/+0.586 | -0.02940 | 2/0 |
 | C_exch_wx1.0_V2.5 | 75 | y/24 | 0.232 | 0.232 | 200 | 3.956 | single (multi3) | +0(+0.46) | -57(-0.15) +57(-0.15) | - | nan / 71 | -0.458/+0.089 | -0.00657 | 1/0 |
 | C_exch_wx1.0_V3.0 | 83 | y/15 | 1.094 | 1.094 | 238 | 4.535 | single (multi4) | -0(+1.30) | -86(-0.15) +86(-0.15) | - | 67 / 71 | -0.542/+0.349 | -0.03215 | 1/0 |
 | C_exch_wx1.0_V3.5 | 89 | y/19 | 1.214 | 1.214 | 276 | 5.116 | single (multi3) | -38(+1.48) | -95(-0.18) +95(-0.18) | - | 67 / 71 | -0.478/+0.476 | -0.06839 | 2/0 |
@@ -14,6 +15,7 @@ class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 pe
 
 | case | 5 T | 4 T | 2 T | 1 T | 0.5 T | 0.25 T | 0 T |
 |---|---|---|---|---|---|---|---|
+| C_exch_wx0.7_V3.0 | 1.713 | 1.631 | 1.664 | 1.690 | 1.621 NO | 1.784 NO | 2.136 NO |
 | C_exch_wx1.0_V2.5 | 0.850 | 0.815 | 0.769 | 0.640 | 0.303 | 0.255 | 0.232 |
 | C_exch_wx1.0_V3.0 | 1.252 | 1.226 | 1.064 | 1.057 | 1.072 | 1.083 | 1.094 |
 | C_exch_wx1.0_V3.5 | 1.484 | 1.500 | 1.481 | 1.265 | 1.214 | 1.210 | 1.214 |

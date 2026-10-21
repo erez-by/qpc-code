@@ -1,4 +1,4 @@
-# Two-electron scan, Phase 1 (2026-10-21 11:26)
+# Two-electron scan, Phase 1 (2026-10-21 11:41)
 
 Model C, exchange, E_cut 15 meV, Ly 320 nm, uniform field, ramp 5 -> 0 T. B = 0 states. L_D: length of D = {n < 0.9 n_lead} [nm]; N_D electrons in D; lobes in D as x(spin) [nm (e)]; Friedel: mean same-sign spacing of the lobes outside D vs pi/k_F = 2/n_lead [nm]; eps0max-mu: top of eps_0,s(x) minus mu (up/dn) [meV]; dOmega = Omega_pol - Omega_unpol [meV]; LDOS peaks below mu at the lobes (up/dn).
 
@@ -6,12 +6,14 @@ class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 pe
 
 | case | d | conv/it | M_loc | net spin | L_D | N_D | class (raw) | moments x(spin) | satellites | broad | Friedel / 2/n | eps0max-mu | dOmega | LDOS pk<mu |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C_exch_wx1.0_V2.5 | 75 | y/24 | 0.232 | 0.232 | 200 | 3.956 | single (multi3) | +0(+0.46) | -57(-0.15) +57(-0.15) | - | nan / 71 | -0.458/+0.089 | -0.00657 | 1/0 |
 | C_exch_wx1.0_V3.0 | 83 | y/15 | 1.094 | 1.094 | 238 | 4.535 | single (multi4) | -0(+1.30) | -86(-0.15) +86(-0.15) | - | 67 / 71 | -0.542/+0.349 | -0.03215 | 1/0 |
 
 ## Ramp: M_loc at each field (NO = not converged)
 
 | case | 5 T | 4 T | 2 T | 1 T | 0.5 T | 0.25 T | 0 T |
 |---|---|---|---|---|---|---|---|
+| C_exch_wx1.0_V2.5 | 0.850 | 0.815 | 0.769 | 0.640 | 0.303 | 0.255 | 0.232 |
 | C_exch_wx1.0_V3.0 | 1.252 | 1.226 | 1.064 | 1.057 | 1.072 | 1.083 | 1.094 |
 
 ## Ramp start: 5 T (this scan) vs 6 T (existing C_exch_wx1.0), wx 1.0, V0 3.0, B = 0

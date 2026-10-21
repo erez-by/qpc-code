@@ -1,0 +1,5 @@
+TE01 (wx 1.0, V0 3.0, ramp 5 -> 0 T + unpol + energies + analysis + dOmega/dmu check): 14.1 min
+remaining Lx 5000 cases: 14 x ~14 min = 3.3 h (longer QPCs may need more iterations per field: treat as a lower bound)
+Lx 7500 check: ~48 min (dense diagonalisation ~ n_pw^3: x 3.4)
+kT 0.02 reruns: ~14 min each, number decided by the scan (0 ... 15)
+Phase 1 total without the reruns: ~4.1 h

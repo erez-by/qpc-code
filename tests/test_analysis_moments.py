@@ -104,3 +104,33 @@ def test_analyse_small_state():
     assert abs(info["net_spin"] - r.M) < 1e-8
     assert 0 <= info["N_D"] <= r.N + 1e-9
     assert arr["eps0"].shape == (2, grid.Nx) and "ldos_e_meV" in arr and info["ldos"]
+
+
+def test_single_moment_with_dip_and_satellites():
+    """PRL-like single moment: two same-sign peaks with a shallow central dip (90 %) and weak opposite
+    satellites at the edges of D -> raw rule says multi4, merged rule says single with spin ~ total."""
+    x = np.arange(-1000.0, 1000.0, 2.5)
+    n_lead = 2.8e-2
+    n = n_lead * (1 - 0.6 * np.exp(-(x / 120.0) ** 2))
+    s = 1.25e-2 * (np.exp(-((x - 30) / 35.0) ** 2) + np.exp(-((x + 30) / 35.0) ** 2)) / 1.05   # dip ~ 0.91 x peak
+    s -= 0.55e-2 * (np.exp(-((x - 90) / 10.0) ** 2) + np.exp(-((x + 90) / 10.0) ** 2))
+    s[np.abs(s) < 1e-12] = 0.0
+    D, L_D, _ = depleted_region(x, n, n_lead)
+    from qpc.analysis_moments import moments
+    raw = [l for l in find_lobes(x, s, D) if l["in_D"]]
+    assert classify(raw) == "multi4"
+    mom, sats = moments(raw, x, s)
+    assert classify(mom) == "single" and mom[0]["n_merged"] == 2 and abs(mom[0]["x"]) < 1
+    pos = s.clip(min=0).sum() * (x[1] - x[0])
+    assert abs(mom[0]["spin"] - pos) < 0.02 * pos
+    assert len(sats) == 2 and all(l["sign"] == -1 for l in sats)
+
+
+def test_two_separated_moments_stay_P():
+    x = np.arange(-1000.0, 1000.0, 2.5)
+    s = 0.8e-2 * (np.exp(-((x - 120) / 40.0) ** 2) + np.exp(-((x + 120) / 40.0) ** 2))
+    D = np.abs(x) < 400
+    from qpc.analysis_moments import moments
+    mom, _ = moments([l for l in find_lobes(x, s, D) if l["in_D"]], x, s)
+    assert classify(mom) == "P" and len(mom) == 2
+    assert all(abs(l["spin"] - 0.8e-2 * 40 * np.sqrt(np.pi)) < 0.01 for l in mom)

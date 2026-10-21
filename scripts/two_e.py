@@ -72,6 +72,19 @@ def run_case(wx, V0, lx, kT, seed, dmu_check, maxiter=300):
     log(f"[two_e] {F.dir}: 5 T start from {start or 'the clean wire'}")
     F.ramp(RAMP5, start_from=start)
     F.energies(min_mloc=-np.inf)
+    info, res = write_analysis(F, wx, V0, lx, kT, start)
+    if dmu_check:
+        dmu_check_case(F, res, info)
+    jdump(F.path("timing.json"), dict(wall_s=time.time() - t0, finished=time.ctime()))
+
+
+def write_analysis(F, wx, V0, lx, kT, start):
+    """analysis.json / analysis.npz of the B = 0 state of folder F (qpc/analysis_moments.analyse)."""
+    import numpy as np
+    from qpc_driver import jdump
+    from qpc.analysis import n1d
+    from qpc.analysis_moments import analyse
+    from qpc.scf import SCFResult
     w = np.load(F.path("wire_B0.npz"))
     n_lead = float(n1d(w["n_up"] + w["n_dn"], F.grid).mean() / F.U.length_nm)
     res = SCFResult.load_npz(F.path("B0.npz"))
@@ -85,11 +98,21 @@ def run_case(wx, V0, lx, kT, seed, dmu_check, maxiter=300):
                       for B in RAMP5])
     np.savez_compressed(F.path("analysis.npz"), **arrays)
     jdump(F.path("analysis.json"), info)
-    log(f"[two_e] {F.dir}: {info['cls']} ({info['n_lobes']} lobes in D, L_D {info['L_D']:.0f} nm, "
-        f"N_D {info['N_D']:.3f}, net spin {info['net_spin']:.3f}, M_loc {info['M_loc']})")
-    if dmu_check:
-        dmu_check_case(F, res, info)
-    jdump(F.path("timing.json"), dict(wall_s=time.time() - t0, finished=time.ctime()))
+    log(f"[two_e] {F.dir}: {info['cls']} ({info['n_lobes']} moments in D; raw rule {info['cls_raw']}), "
+        f"L_D {info['L_D']:.0f} nm, N_D {info['N_D']:.3f}, net spin {info['net_spin']:.3f}, M_loc {info['M_loc']}")
+    return info, res
+
+
+def reanalyse():
+    """Recompute analysis.json of every finished case (no SCF), e.g. after a change of the lobe rules."""
+    from qpc_driver import Folder
+    for d in sorted(glob.glob(os.path.join(ROOT, OUT, "*/"))):
+        a = load(d + "analysis.json")
+        if not a or not os.path.exists(d + "B0.npz"):
+            continue
+        F = Folder("C", "exchange", a["hbar_wx"], lx=a["lx"], kT=a["kT"], log=log, V0=a["V0"], root=OUT,
+                   name=os.path.basename(d.rstrip("/")))
+        write_analysis(F, a["hbar_wx"], a["V0"], a["lx"], a["kT"], a.get("seed"))
 
 
 def dmu_check_case(F, r0, info):
@@ -140,15 +163,19 @@ def summary():
            "D = {n < 0.9 n_lead} [nm]; N_D electrons in D; lobes in D as x(spin) [nm (e)]; Friedel: mean same-sign "
            "spacing of the lobes outside D vs pi/k_F = 2/n_lead [nm]; eps0max-mu: top of eps_0,s(x) minus mu (up/dn) "
            "[meV]; dOmega = Omega_pol - Omega_unpol [meV]; LDOS peaks below mu at the lobes (up/dn).", "",
-           "| case | d | conv/it | M_loc | net spin | L_D | N_D | class | lobes x(spin) | broad | Friedel / 2/n | "
-           "eps0max-mu | dOmega | LDOS pk<mu |", "|" + "---|" * 14]
+           "class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 peak) and dropping lobes "
+           "with |spin| < 0.3 (satellites); raw: the spec's literal peak count (OPEN_QUESTIONS #13).", "",
+           "| case | d | conv/it | M_loc | net spin | L_D | N_D | class (raw) | moments x(spin) | satellites | broad | "
+           "Friedel / 2/n | eps0max-mu | dOmega | LDOS pk<mu |", "|" + "---|" * 15]
     for name, d, a in rows:
         lob = " ".join(f"{x:+.0f}({s:+.2f})" for x, s in zip(a["lobe_x"], a["lobe_spins"])) or "-"
         em = a.get("eps0_max_minus_mu", [None, None])
         pk = "; ".join(f"{l['n_peaks_below_mu'][0]}/{l['n_peaks_below_mu'][1]}" for l in a.get("ldos", [])) or "-"
         conv = f"{'y' if a['converged'] else 'NO'}/{a['iterations']}"
+        sat = " ".join("%+.0f(%+.2f)" % (l["x"], l["spin"]) for l in a.get("satellites", [])) or "-"
         out.append(f"| {name} | {f(a['d_nm'], '{:.0f}')} | {conv} | {f(a['M_loc'])} | {f(a['net_spin'])} | "
-                   f"{f(a['L_D'], '{:.0f}')} | {f(a['N_D'])} | {a['cls']} | {lob} | {'y' if a['broad'] else '-'} | "
+                   f"{f(a['L_D'], '{:.0f}')} | {f(a['N_D'])} | {a['cls']} ({a.get('cls_raw', '-')}) | {lob} | {sat} | "
+                   f"{'y' if a['broad'] else '-'} | "
                    f"{f(a['friedel_spacing'], '{:.0f}')} / {f(a['friedel_estimate'], '{:.0f}')} | "
                    f"{f(em[0], '{:+.3f}')}/{f(em[1], '{:+.3f}')} | {f(a['dOmega_pol_unpol_meV'], '{:+.5f}')} | {pk} |")
     out += ["", "## Ramp: M_loc at each field (NO = not converged)", "",
@@ -287,10 +314,14 @@ def main():
     ap.add_argument("--go", action="store_true", help="run the whole queue (after the TE01 estimate)")
     ap.add_argument("--status", action="store_true")
     ap.add_argument("--summary", action="store_true")
+    ap.add_argument("--reanalyse", action="store_true", help="recompute analysis.json of finished cases")
     a = ap.parse_args()
     if a.case:
         return run_case(a.case[0], a.case[1], a.lx, a.kT, a.seed, a.dmu_check, a.maxiter)
     if a.summary:
+        return summary()
+    if a.reanalyse:
+        reanalyse()
         return summary()
     if a.status:
         for jid, mins, desc, _ in jobs() + kT_jobs():

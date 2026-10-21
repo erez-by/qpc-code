@@ -23,6 +23,8 @@ from .units import Units
 
 PROMINENCE_NM = 0.3e-2          # lobe threshold on |s(x)| [nm^-1] (spec)
 DEPLETION_FRAC = 0.9            # D = {n < 0.9 n_lead} (spec)
+VALLEY = 0.5                    # PHYSICS-CHOICE #13: same-sign lobes are ONE moment unless s dips below 0.5 x peak
+MIN_SPIN = 0.3                  # PHYSICS-CHOICE #13: a moment carries |int s dx| >= 0.3; weaker lobes = satellites
 
 
 # ----------------------------------------------------------------------------- 1. profiles
@@ -76,14 +78,44 @@ def find_lobes(x, s, D, prominence=PROMINENCE_NM):
             hi = i
             while hi < s.size - 1 and v[hi + 1] > 0:
                 hi += 1
+            half = 0.0                                          # the shared saddle point counts half to each side
             if k > 0 and idx[k - 1] >= lo:                      # same-sign neighbour without a zero between
-                lo = idx[k - 1] + int(np.argmin(v[idx[k - 1]:i + 1])) + 1       # saddle belongs to the left lobe
+                lo = idx[k - 1] + int(np.argmin(v[idx[k - 1]:i + 1]))
+                half += 0.5 * s[lo]
             if k < len(idx) - 1 and idx[k + 1] <= hi:
                 hi = i + int(np.argmin(v[i:idx[k + 1] + 1]))
+                half += 0.5 * s[hi]
             out.append(dict(x=float(x[i]), sign=int(sign), peak=float(s[i]), x_lo=float(x[lo]),
                             x_hi=float(x[hi]), width=float((hi - lo + 1) * dx),
-                            spin=float(s[lo:hi + 1].sum() * dx), in_D=bool(D[i])))
+                            spin=float((s[lo:hi + 1].sum() - half) * dx), in_D=bool(D[i]), n_merged=1))
     return sorted(out, key=lambda l: l["x"])
+
+
+def merge_lobes(lobes, x, s, valley=VALLEY):
+    """Merge adjacent same-sign lobes into one moment when sign * s between them never drops below
+    valley x the smaller peak (a single moment with a central dip, e.g. the PRL Fig. 1(a) spin-up density
+    with two peaks); spins add, the position is the spin-weighted centre. Returns a new sorted list."""
+    out = []
+    for l in sorted(lobes, key=lambda l: l["x"]):
+        if out and out[-1]["sign"] == l["sign"]:
+            m = out[-1]
+            sel = (x >= m["x"]) & (x <= l["x"])
+            floor = float(np.min(l["sign"] * s[sel])) if sel.any() else 0.0
+            if floor >= valley * min(abs(m["peak"]), abs(l["peak"])):
+                sp = m["spin"] + l["spin"]
+                out[-1] = dict(m, x=float((m["x"] * m["spin"] + l["x"] * l["spin"]) / sp) if sp else m["x"],
+                               peak=m["peak"] if abs(m["peak"]) >= abs(l["peak"]) else l["peak"],
+                               x_hi=l["x_hi"], width=l["x_hi"] - m["x_lo"] + (x[1] - x[0]), spin=sp,
+                               n_merged=m.get("n_merged", 1) + l.get("n_merged", 1), dip=floor)
+                continue
+        out.append(dict(l))
+    return out
+
+
+def moments(lobes_D, x, s, valley=VALLEY, min_spin=MIN_SPIN):
+    """(moments, satellites): merged lobes in D with |spin| >= min_spin, and the weaker ones."""
+    m = merge_lobes(lobes_D, x, s, valley)
+    return [l for l in m if abs(l["spin"]) >= min_spin], [l for l in m if abs(l["spin"]) < min_spin]
 
 
 def classify(lobes_D):
@@ -98,10 +130,14 @@ def classify(lobes_D):
     return f"multi{k}"
 
 
-def is_broad(lobes_D, L_D):
-    """PHYSICS-CHOICE (docs/OPEN_QUESTIONS.md #13): a single lobe is 'broad' when its width between the
-    zeros of s exceeds half of L_D (candidate for two overlapping moments; rerun at kT = 0.02)."""
-    return len(lobes_D) == 1 and L_D > 0 and lobes_D[0]["width"] > 0.5 * L_D
+def is_broad(lobes_D, L_D, frac=0.75, spin_max=1.5):
+    """PHYSICS-CHOICE (docs/OPEN_QUESTIONS.md #13): a single moment is 'broad' (room for two overlapping
+    electrons; kT = 0.02 rerun candidate) when its width between the zeros of s exceeds 0.75 L_D or its
+    integrated |spin| exceeds 1.5. (At wx 1.0, V0 3.0 the known single moment has width 0.56 L_D, spin 1.30.)"""
+    if len(lobes_D) != 1 or L_D <= 0:
+        return False
+    l = lobes_D[0]
+    return bool(l["width"] > frac * L_D or abs(l["spin"]) > spin_max)
 
 
 def friedel_spacing(lobes_out):
@@ -185,15 +221,17 @@ def analyse(res, ham, qpc_params, n_lead_nm, units=Units(), ldos=True, eta_meV=0
     D, L_D, (xl, xr) = depleted_region(x, n, n_lead_nm)
     dx = x[1] - x[0]
     lobes = find_lobes(x, s, D)
-    in_D = [l for l in lobes if l["in_D"]]
+    raw = [l for l in lobes if l["in_D"]]
     out_D = [l for l in lobes if not l["in_D"]]
+    in_D, sats = moments(raw, x, s)
     i0 = int(np.argmin(np.abs(x)))
     mu = U.au_to_meV(res.mu)
     info = dict(L_D=L_D, D_edges=[xl, xr], N_D=float(n[D].sum() * dx), net_spin=float(s.sum() * dx),
                 n_lead=float(n_lead_nm), n_center=float(n[i0]), LD_estimate=float(2.0 / n[i0]) if n[i0] > 0 else None,
                 n_lobes=len(in_D), cls=classify(in_D), broad=is_broad(in_D, L_D),
                 lobe_x=[l["x"] for l in in_D], lobe_signs=[l["sign"] for l in in_D],
-                lobe_spins=[l["spin"] for l in in_D], lobes=in_D, friedel_lobes=out_D,
+                lobe_spins=[l["spin"] for l in in_D], lobes=in_D, satellites=sats,
+                n_lobes_raw=len(raw), cls_raw=classify(raw), lobes_raw=raw, friedel_lobes=out_D,
                 friedel_spacing=friedel_spacing(out_D), friedel_estimate=float(2.0 / n_lead_nm),
                 mu_meV=mu, converged=bool(res.converged), iterations=int(res.iterations))
     arrays = dict(x_nm=x, n_x=n, s_x=s, D_mask=D)

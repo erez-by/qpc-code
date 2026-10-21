@@ -66,4 +66,10 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
     s = 0 stretch or a tiny lobe between two opposite lobes has a large prominence but is not a lobe); (b) two
     same-sign lobes without a zero between them (P case) are split at the minimum of |s|, so their spins are
     not double counted; (c) D is the connected part of {n < 0.9 n_lead} that contains the minimum of n;
-    (d) a single lobe is "broad" (kT = 0.02 rerun candidate) when its width between zeros exceeds L_D / 2.
+    (d) after TE01 (wx 1.0, V0 3.0, the known single moment): the literal rule gave "multi4" -- the spin-up
+    density has two peaks at +-29 nm with a shallow dip (s(0) = 0.90 x peak) and two weak opposite lobes
+    (-0.15 e) at the edges of D. Main classification therefore uses MOMENTS: adjacent same-sign lobes merge
+    unless s dips below 0.5 x the smaller peak, and lobes with |int s dx| < 0.3 are satellites (reported, not
+    counted); the literal count is kept as cls_raw. TE01 -> single, +1.30 e, satellites -0.15, -0.15;
+    (e) a single moment is "broad" (kT = 0.02 rerun candidate) when its width exceeds 0.75 L_D or |spin| > 1.5
+    (TE01: 0.56 L_D, 1.30 -> not broad).

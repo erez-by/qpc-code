@@ -1,10 +1,12 @@
-# Two-electron scan, Phase 1 (2026-10-21 11:21)
+# Two-electron scan, Phase 1 (2026-10-21 11:26)
 
 Model C, exchange, E_cut 15 meV, Ly 320 nm, uniform field, ramp 5 -> 0 T. B = 0 states. L_D: length of D = {n < 0.9 n_lead} [nm]; N_D electrons in D; lobes in D as x(spin) [nm (e)]; Friedel: mean same-sign spacing of the lobes outside D vs pi/k_F = 2/n_lead [nm]; eps0max-mu: top of eps_0,s(x) minus mu (up/dn) [meV]; dOmega = Omega_pol - Omega_unpol [meV]; LDOS peaks below mu at the lobes (up/dn).
 
-| case | d | conv/it | M_loc | net spin | L_D | N_D | class | lobes x(spin) | broad | Friedel / 2/n | eps0max-mu | dOmega | LDOS pk<mu |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| C_exch_wx1.0_V3.0 | 83 | y/15 | 1.094 | 1.094 | 238 | 4.535 | multi4 | -86(-0.15) -29(+0.70) +29(+0.60) +86(-0.15) | - | 67 / 71 | -0.542/+0.349 | -0.03215 | 2/1; 1/0; 1/0; 2/1 |
+class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 peak) and dropping lobes with |spin| < 0.3 (satellites); raw: the spec's literal peak count (OPEN_QUESTIONS #13).
+
+| case | d | conv/it | M_loc | net spin | L_D | N_D | class (raw) | moments x(spin) | satellites | broad | Friedel / 2/n | eps0max-mu | dOmega | LDOS pk<mu |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C_exch_wx1.0_V3.0 | 83 | y/15 | 1.094 | 1.094 | 238 | 4.535 | single (multi4) | -0(+1.30) | -86(-0.15) +86(-0.15) | - | 67 / 71 | -0.542/+0.349 | -0.03215 | 1/0 |
 
 ## Ramp: M_loc at each field (NO = not converged)
 
@@ -26,5 +28,9 @@ class multi4: dOmega/dmu = -137.72449, -N = -137.72449, relative deviation 3.06e
 
 ## Timing estimate
 ```
-(not yet)
+TE01 (wx 1.0, V0 3.0, ramp 5 -> 0 T + unpol + energies + analysis + dOmega/dmu check): 14.1 min
+remaining Lx 5000 cases: 14 x ~14 min = 3.3 h (longer QPCs may need more iterations per field: treat as a lower bound)
+Lx 7500 check: ~48 min (dense diagonalisation ~ n_pw^3: x 3.4)
+kT 0.02 reruns: ~14 min each, number decided by the scan (0 ... 15)
+Phase 1 total without the reruns: ~4.1 h
 ```

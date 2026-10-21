@@ -1,0 +1,2 @@
+hbar_wx,V0,lx,kT,branch,L_D,N_D,net_spin,n_lobes,cls,lobe_signs,lobe_spins,converged
+1.0,3.0,5000.0,0.05,uniform,238.1,4.5352,1.0935,4,multi4,-1 +1 +1 -1,-0.151 +0.704 +0.597 -0.151,True

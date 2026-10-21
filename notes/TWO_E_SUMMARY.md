@@ -1,4 +1,4 @@
-# Two-electron scan, Phase 1 (2026-10-21 21:05)
+# Two-electron scan, Phase 1 (2026-10-21 22:52)
 
 Model C, exchange, E_cut 15 meV, Ly 320 nm, uniform field, ramp 5 -> 0 T. B = 0 states. L_D: length of D = {n < 0.9 n_lead} [nm]; N_D electrons in D; lobes in D as x(spin) [nm (e)]; Friedel: mean same-sign spacing of the lobes outside D vs pi/k_F = 2/n_lead [nm]; eps0max-mu: top of eps_0,s(x) minus mu (up/dn) [meV]; dOmega = Omega_pol - Omega_unpol [meV]; LDOS peaks below mu at the lobes (up/dn).
 
@@ -6,6 +6,7 @@ class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 pe
 
 | case | d | conv/it | M_loc | net spin | L_D | N_D | class (raw) | moments x(spin) | satellites | broad | Friedel / 2/n | eps0max-mu | dOmega | LDOS pk<mu |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C_exch_wx0.35_V2.5 | 215 | NO/300 | 2.657 | 2.657 | 600 | 12.258 | single (multi9) | +29(+2.84) | -267(+0.08) -229(-0.11) -181(+0.19) -133(-0.21) +133(-0.21) +181(+0.19) +229(-0.11) +267(+0.08) | y | nan / 71 | -0.261/+0.519 | +0.07664 | 3/0 |
 | C_exch_wx0.35_V3.0 | 236 | y/208 | 2.952 | 2.952 | 733 | 14.632 | multi3 (multi12) | -152(-0.35) -0(+3.32) +152(-0.35) | -333(-0.09) -295(+0.12) -248(-0.17) -200(+0.27) +200(+0.27) +248(-0.17) +295(+0.12) +333(-0.09) | - | nan / 71 | -0.104/+0.607 | -0.07574 | 2/1; 2/0; 2/1 |
 | C_exch_wx0.5_V2.5 | 151 | NO/300 | 1.999 | 1.999 | 429 | 8.750 | single (multi7) | +0(+2.24) | -200(-0.08) -162(+0.14) -114(-0.20) +114(-0.20) +162(+0.14) +200(-0.08) | y | nan / 71 | -0.397/+0.350 | +0.03206 | 2/0 |
 | C_exch_wx0.5_V3.0 | 165 | y/17 | 1.980 | 1.980 | 505 | 9.985 | single (multi7) | +0(+2.33) | -210(-0.11) -171(+0.19) -124(-0.30) +124(-0.30) +171(+0.19) +210(-0.11) | y | 76 / 71 | -0.221/+0.615 | -0.05829 | 2/0 |
@@ -21,6 +22,7 @@ class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 pe
 
 | case | 5 T | 4 T | 2 T | 1 T | 0.5 T | 0.25 T | 0 T |
 |---|---|---|---|---|---|---|---|
+| C_exch_wx0.35_V2.5 | 1.901 | 1.944 | 2.305 NO | 2.712 NO | 2.575 NO | 2.701 NO | 2.657 NO |
 | C_exch_wx0.35_V3.0 | 3.320 | 2.902 | 3.148 NO | 3.487 NO | 3.811 NO | 3.599 NO | 2.952 |
 | C_exch_wx0.5_V2.5 | 1.424 | 1.352 | 1.288 NO | 1.609 NO | 2.001 NO | 1.979 NO | 1.999 NO |
 | C_exch_wx0.5_V3.0 | 2.285 | 2.236 | 2.414 NO | 2.821 NO | 1.880 | 1.930 | 1.980 |

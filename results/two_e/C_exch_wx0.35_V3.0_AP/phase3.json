@@ -1,0 +1,43 @@
+{
+ "P": [
+  {
+   "tol": 1e-05,
+   "converged": true,
+   "iterations": 9,
+   "Omega_meV": -523.5659625595624,
+   "M": 2.9523585944816,
+   "change_meV": null
+  },
+  {
+   "tol": 1e-06,
+   "converged": true,
+   "iterations": 9,
+   "Omega_meV": -523.5659625595656,
+   "M": 2.952361294310187,
+   "change_meV": -3.183231456205249e-12
+  }
+ ],
+ "AP": [
+  {
+   "tol": 1e-05,
+   "converged": true,
+   "iterations": 35,
+   "Omega_meV": -523.5195843539672,
+   "M": -1.8350796248393933e-06,
+   "change_meV": null
+  },
+  {
+   "tol": 1e-06,
+   "converged": true,
+   "iterations": 58,
+   "Omega_meV": -523.5195843539549,
+   "M": 1.0113696660442586e-06,
+   "change_meV": 1.2278178473934531e-11
+  }
+ ],
+ "Delta_meV": 0.046378205610722034,
+ "Omega_stable": true,
+ "M_P": 2.952361294310187,
+ "M_AP": 1.0113696660442586e-06,
+ "verdict": "P (parallel) ground state"
+}

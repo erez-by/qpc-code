@@ -1,4 +1,4 @@
-# Two-electron scan, Phase 1 (2026-10-22 01:18)
+# Two-electron scan, Phase 1 (2026-10-22 03:08)
 
 Model C, exchange, E_cut 15 meV, Ly 320 nm, uniform field, ramp 5 -> 0 T. B = 0 states. L_D: length of D = {n < 0.9 n_lead} [nm]; N_D electrons in D; lobes in D as x(spin) [nm (e)]; Friedel: mean same-sign spacing of the lobes outside D vs pi/k_F = 2/n_lead [nm]; eps0max-mu: top of eps_0,s(x) minus mu (up/dn) [meV]; dOmega = Omega_pol - Omega_unpol [meV]; LDOS peaks below mu at the lobes (up/dn).
 
@@ -6,6 +6,7 @@ class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 pe
 
 | case | d | conv/it | M_loc | net spin | L_D | N_D | class (raw) | moments x(spin) | satellites | broad | Friedel / 2/n | eps0max-mu | dOmega | LDOS pk<mu |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C_exch_wx0.25_V2.5 | 302 | NO/300 | 3.847 | 3.847 | 867 | 17.860 | single (multi13) | +57(+4.07) | -400(+0.08) -352(-0.10) -314(+0.14) -267(-0.18) -219(+0.27) -171(-0.28) +171(-0.28) +219(+0.27) +267(-0.18) +314(+0.14) +352(-0.10) +400(+0.08) | y | nan / 71 | -0.216/+0.460 | +0.10049 | 3/0 |
 | C_exch_wx0.25_V3.0 | 330 | NO/300 | 4.991 | 4.991 | 1019 | 20.305 | multi5 (multi15) | -267(+0.33) -210(-0.37) +95(+5.35) +210(-0.37) +267(+0.33) | -486(-0.07) -448(+0.10) -400(-0.13) -362(+0.17) -314(-0.24) +314(-0.24) +362(+0.17) +400(-0.13) +448(+0.10) +486(-0.07) | - | nan / 71 | -0.056/+0.676 | -0.06190 | 1/1; 2/1; 3/0; 2/1; 1/1 |
 | C_exch_wx0.35_V2.5 | 215 | NO/300 | 2.657 | 2.657 | 600 | 12.258 | single (multi9) | +29(+2.84) | -267(+0.08) -229(-0.11) -181(+0.19) -133(-0.21) +133(-0.21) +181(+0.19) +229(-0.11) +267(+0.08) | y | nan / 71 | -0.261/+0.519 | +0.07664 | 3/0 |
 | C_exch_wx0.35_V3.0 | 236 | y/208 | 2.952 | 2.952 | 733 | 14.632 | multi3 (multi12) | -152(-0.35) -0(+3.32) +152(-0.35) | -333(-0.09) -295(+0.12) -248(-0.17) -200(+0.27) +200(+0.27) +248(-0.17) +295(+0.12) +333(-0.09) | - | nan / 71 | -0.104/+0.607 | -0.07574 | 2/1; 2/0; 2/1 |
@@ -24,6 +25,7 @@ class: moments in D after merging same-sign lobes with a shallow dip (s > 0.5 pe
 
 | case | 5 T | 4 T | 2 T | 1 T | 0.5 T | 0.25 T | 0 T |
 |---|---|---|---|---|---|---|---|
+| C_exch_wx0.25_V2.5 | 2.450 | 2.542 | 3.058 NO | 3.798 NO | 3.724 NO | 3.738 NO | 3.847 NO |
 | C_exch_wx0.25_V3.0 | 4.226 | 4.254 | 4.467 NO | 4.364 NO | 4.458 NO | 5.353 NO | 4.991 NO |
 | C_exch_wx0.35_V2.5 | 1.901 | 1.944 | 2.305 NO | 2.712 NO | 2.575 NO | 2.701 NO | 2.657 NO |
 | C_exch_wx0.35_V3.0 | 3.320 | 2.902 | 3.148 NO | 3.487 NO | 3.811 NO | 3.599 NO | 2.952 |

@@ -1,0 +1,13 @@
+{
+ "peaks_nm": [
+  -47.61904761904764,
+  47.61904761904762
+ ],
+ "window_nm": [
+  -247.61904761904782,
+  247.61904761904762
+ ],
+ "source": "fallback: 2 equal segments of the spin moment [-95, 95] nm (only 1 n(x) peak(s) in D; net spin 1.98)",
+ "w_nm": 20.0,
+ "wD_nm": 25.0
+}

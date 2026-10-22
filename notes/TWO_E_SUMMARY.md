@@ -1,4 +1,4 @@
-# Two-electron scan, Phase 1 (2026-10-22 04:46)
+# Two-electron scan, Phase 1 (2026-10-22 11:01)
 
 Model C, exchange, E_cut 15 meV, Ly 320 nm, uniform field, ramp 5 -> 0 T. B = 0 states. L_D: length of D = {n < 0.9 n_lead} [nm]; N_D electrons in D; lobes in D as x(spin) [nm (e)]; Friedel: mean same-sign spacing of the lobes outside D vs pi/k_F = 2/n_lead [nm]; eps0max-mu: top of eps_0,s(x) minus mu (up/dn) [meV]; dOmega = Omega_pol - Omega_unpol [meV]; LDOS peaks below mu at the lobes (up/dn).
 

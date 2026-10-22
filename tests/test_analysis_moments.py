@@ -134,3 +134,18 @@ def test_two_separated_moments_stay_P():
     mom, _ = moments([l for l in find_lobes(x, s, D) if l["in_D"]], x, s)
     assert classify(mom) == "P" and len(mom) == 2
     assert all(abs(l["spin"] - 0.8e-2 * 40 * np.sqrt(np.pi)) < 0.01 for l in mom)
+
+
+def test_density_peaks_in_D_only():
+    """Three bumps of a Wigner-like chain inside D are found with their spacing; a stronger bump outside D
+    (Friedel / lead) is ignored."""
+    from qpc.analysis_moments import density_peaks
+    x = np.arange(-1000.0, 1000.0, 2.5)
+    n = 2.8e-2 * (1 - 0.5 * np.exp(-(x / 250.0) ** 2))
+    for x0 in (-70.0, 0.0, 70.0):
+        n += 0.3e-2 * np.exp(-((x - x0) / 20.0) ** 2)
+    n += 0.5e-2 * np.exp(-((x - 600.0) / 20.0) ** 2)
+    D = np.abs(x) < 300
+    pos, prom, sp = density_peaks(x, n, D)
+    assert len(pos) == 3 and np.allclose(pos, [-70, 0, 70], atol=3) and np.allclose(sp, [70, 70], atol=5)
+    assert all(p > 0.1e-2 for p in prom)

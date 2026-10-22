@@ -60,9 +60,12 @@ class SCFParams:
     spin_polarized: bool = True
     lead_reference: str = "interacting"   # model A (default) | "bare": model B, see lead_state
     hartree_scale: float = 1.0       # SENSITIVITY knob: V_H -> s V_H everywhere (leads, QPC, E_H); 1 = physical
-    zeeman_profile: str = "uniform"  # "uniform" (default) | "staggered": E_Z(x) = E_Z f(x), see staggered_profile
-    zeeman_w_nm: float = 20.0        # staggered: width of the central wall at x = 0
+    zeeman_profile: str = "uniform"  # "uniform" (default) | "staggered" | "alternating": E_Z(x) = E_Z f(x)
+    zeeman_w_nm: float = 20.0        # staggered / alternating: width of the walls between segments
     zeeman_we_nm: float = 200.0      # staggered: width of the compensating walls at x = +-Lx/2
+    zeeman_peaks_nm: tuple = ()      # alternating: n(x) peak positions x_j in D [nm] (sign (-1)^j)
+    zeeman_window_nm: tuple = ()     # alternating: (x_left, x_right) of D [nm]; field -> 0 outside
+    zeeman_wD_nm: float = 25.0       # alternating: width of the envelope edges at the ends of D
 
     def a_metal_au(self, units=Units()):
         """Metal-plane distance a_m = a_image / 2 in a* (the argument of Hartree)."""
@@ -89,6 +92,25 @@ def staggered_profile(x, Lx, w, w_e):
     return np.tanh(x / w) - np.tanh((x - 0.5 * Lx) / w_e) - np.tanh((x + 0.5 * Lx) / w_e)
 
 
+def alternating_profile(x, peaks, window, w, w_D):
+    """Sign pattern of the alternating ('generalized staggered') Zeeman field (two-electron spec, Phase 2):
+
+        f(x) = e(x) [ s_0 + sum_j (s_{j+1} - s_j)/2 (1 + tanh((x - m_j)/w)) ],   s_j = (-1)^j,
+        m_j = (x_j + x_{j+1})/2,   e(x) = (1/2) [tanh((x - a)/w_D) - tanh((x - b)/w_D)]
+
+    for peaks x_0 < x_1 < ... inside the window (a, b) = D: segment j (around peak x_j) has sign (-1)^j,
+    smooth walls of width w at the midpoints, and the envelope e switches the field off smoothly outside
+    D, so f ~ 0 at the cell edge (periodic and smooth there). Same length unit for all arguments."""
+    x = np.asarray(x, dtype=float)
+    pk = np.sort(np.asarray(peaks, dtype=float))
+    sg = (-1.0) ** np.arange(pk.size)
+    g = np.full_like(x, sg[0] if pk.size else 0.0)
+    for j in range(pk.size - 1):
+        g += 0.5 * (sg[j + 1] - sg[j]) * (1.0 + np.tanh((x - 0.5 * (pk[j] + pk[j + 1])) / w))
+    a, b = window
+    return g * 0.5 * (np.tanh((x - a) / w_D) - np.tanh((x - b) / w_D))
+
+
 def zeeman_field(grid, p, units=Units()):
     """E_Z on the grid [Ha*]: the scalar g* mu_B B (uniform, default; unchanged behaviour) or, for
     p.zeeman_profile == "staggered", the array E_Z f(x) of shape (Nx, 1) (staggered_profile, x from
@@ -99,6 +121,10 @@ def zeeman_field(grid, p, units=Units()):
     if p.zeeman_profile == "staggered":
         x = min_image(grid.real_axes()[0], grid.Lx)
         f = staggered_profile(x, grid.Lx, units.nm_to_au(p.zeeman_w_nm), units.nm_to_au(p.zeeman_we_nm))
+        return EZ * f[:, None]
+    if p.zeeman_profile == "alternating":
+        x = units.au_to_nm(min_image(grid.real_axes()[0], grid.Lx))
+        f = alternating_profile(x, p.zeeman_peaks_nm, p.zeeman_window_nm, p.zeeman_w_nm, p.zeeman_wD_nm)
         return EZ * f[:, None]
     raise ValueError(f"zeeman_profile {p.zeeman_profile!r}")
 
@@ -141,7 +167,8 @@ class SCFResult:
                    M=float(z["M"]), iterations=int(z["iterations"]),
                    converged=bool(z["converged"]), residual=float(z["residual"]),
                    history=[tuple(r) for r in z["history"]],
-                   params=SCFParams(**{k: v for k, v in json.loads(str(z["params"])).items()
+                   params=SCFParams(**{k: tuple(v) if isinstance(v, list) else v
+                                       for k, v in json.loads(str(z["params"])).items()
                                        if k in SCFParams.__dataclass_fields__}),
                    V=[z["V_up"], z["V_dn"]] if "V_up" in z else None)
 

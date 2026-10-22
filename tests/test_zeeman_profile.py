@@ -103,3 +103,37 @@ def test_dOmega_dmu_equals_minus_N(qpc_small):
     deriv = (Om[0] - Om[1]) / (2 * dmu)
     N0 = total_energy(r0, ham, hart, V, p)["N"]
     assert abs(deriv + N0) < 1e-3 * N0
+
+
+@pytest.mark.parametrize("peaks", [(-60.0, 60.0), (-150.0, 0.0, 150.0), (-200.0, -70.0, 60.0, 190.0)])
+def test_alternating_profile(peaks):
+    """Sign (-1)^j at each peak x_j, ~0 outside D, odd/even symmetry follows the peaks, smooth FFT decay."""
+    from qpc.scf import alternating_profile
+    Lx, N = 5000.0, 8192
+    x = (np.arange(N) * Lx / N + 0.5 * Lx) % Lx - 0.5 * Lx
+    window = (min(peaks) - 80.0, max(peaks) + 80.0)
+    f = alternating_profile(x, peaks, window, 20.0, 25.0)
+    for j, xj in enumerate(sorted(peaks)):
+        v = alternating_profile(np.array([xj]), peaks, window, 20.0, 25.0)[0]
+        assert np.sign(v) == (-1) ** j and abs(v) > 0.9
+    far = np.abs(x) > max(abs(window[0]), abs(window[1])) + 300
+    assert np.abs(f[far]).max() < 1e-9
+    c = np.abs(np.fft.rfft(f)) / N
+    assert c[1500:].max() < 1e-10 * c.max()
+
+
+def test_alternating_params_roundtrip(tmp_path):
+    """Tuple-valued Zeeman parameters survive save_npz / load_npz (JSON lists -> tuples)."""
+    grid = grid_from_cutoff(60.0, 24.0, 0.8)
+    ham = Hamiltonian(grid, 0.8)
+    hart = Hartree(grid, U.nm_to_au(50.0), verbose=False)
+    V = external_potential(grid, QPCParams(hbar_wx_meV=1.5))
+    p = base(B_T=4.0, zeeman_profile="alternating", zeeman_peaks_nm=(-80.0, 80.0), zeeman_window_nm=(-200.0, 200.0),
+             maxiter=5)
+    r = run_scf(ham, hart, V, p, N=4.0, verbose=False)
+    r.save_npz(tmp_path / "a.npz")
+    from qpc.scf import SCFResult
+    q = SCFResult.load_npz(tmp_path / "a.npz")
+    assert q.params == p
+    EZ = zeeman_field(grid, p)
+    assert EZ.shape == (grid.Nx, 1)

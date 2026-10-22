@@ -73,3 +73,13 @@ Choices not fixed by the PRL (HMW 2003) or by docs/SPEC.md. Each one is marked i
     counted); the literal count is kept as cls_raw. TE01 -> single, +1.30 e, satellites -0.15, -0.15;
     (e) a single moment is "broad" (kT = 0.02 rerun candidate) when its width exceeds 0.75 L_D or |spin| > 1.5
     (TE01: 0.56 L_D, 1.30 -> not broad).
+14. **Phase 1 analysis and Phase 2 pattern (two-electron spec).** (a) Electrons are also counted as maxima of
+    n(x) inside D with prominence >= 0.1e-2 nm^-1 (weak: 0.05e-2). Result: the count does NOT follow the net
+    spin (wx 0.5 V0 3.0: net spin 1.98, one n peak at x = 0; peaks ~ net spin - 1 elsewhere); peak spacing
+    57-76 nm ~ 1/n_center. (b) Phase 2 "alternating" Zeeman field: sign (-1)^j per n(x)-peak segment in D,
+    tanh walls (w = 20 nm) at the midpoints, envelope (w_D = 25 nm) -> 0 outside D. FALLBACK when D holds
+    < 2 n(x) peaks: N = round(net spin) equal segments across the spin moment (wx 0.5 V0 3.0: +-48 nm).
+    (c) Since that field vanishes outside D, the leads are at zero field: the AP runs use mu(0) and the
+    B = 0 wire at every B (no wire moment subtracted). (d) The AP ramp starts at 5 T from the unpolarised
+    B = 0 state of the P case, so only the field pattern selects the branch. (e) Outcome vs P: 'P' if
+    corr(s_AP, s_P) > 0.9 and |net spin difference| < 0.2; 'none' if max |s| < 0.3e-2 nm^-1; else AP-like.

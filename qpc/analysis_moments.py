@@ -150,6 +150,23 @@ def friedel_spacing(lobes_out):
     return float(np.mean(d)) if d else float("nan")
 
 
+# ----------------------------------------------------------------------------- 3b. peaks of n(x)
+N_PROMINENCE_NM = 0.1e-2        # PHYSICS-CHOICE #14: n(x) peak threshold inside D [nm^-1] ("strong" peaks)
+N_PROMINENCE_WEAK_NM = 0.05e-2  # weaker peaks, reported separately
+
+
+def density_peaks(x, n, D, prominence=N_PROMINENCE_NM):
+    """Peaks of the line density n(x) inside D (localized electrons as density maxima, Wigner-like):
+    scipy find_peaks on n restricted to D with the given prominence [nm^-1]. Returns (positions [nm],
+    prominences [nm^-1], spacings between neighbouring peaks [nm])."""
+    i = np.nonzero(D)[0]
+    if i.size < 3:
+        return [], [], []
+    k, pr = find_peaks(n[i], prominence=prominence)
+    xs = [float(x[i][j]) for j in k]
+    return xs, [float(p) for p in pr["prominences"]], [float(d) for d in np.diff(xs)]
+
+
 # ----------------------------------------------------------------------------- 5. eps_0,s(x)
 def _fourier_y(Vs, grid, y_au):
     """Trigonometric interpolation in y of the periodic grid function Vs (Nx, Ny) at the points y_au."""

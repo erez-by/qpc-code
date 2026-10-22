@@ -94,13 +94,14 @@ def lorentz_c(e, A, e0, w, c):
 
 class Folder:
     def __init__(self, model, interp, wx, ecut=15.0, lx=5000.0, kT=0.05, maxiter=300, tag=None,
-                 log=print, level_diag=False, V0=3.0, root="results", name=None, zeeman="uniform"):
+                 log=print, level_diag=False, V0=3.0, root="results", name=None, zeeman="uniform",
+                 zeeman_kw=None):
         self.model, self.interp, self.wx = model, interp, float(wx)
         self.ecut, self.lx, self.kT, self.maxiter = float(ecut), float(lx), float(kT), int(maxiter)
         self.tag = tag
         self.log = log
         self.level_diag = bool(level_diag)
-        self.V0, self.zeeman = float(V0), zeeman
+        self.V0, self.zeeman, self.zeeman_kw = float(V0), zeeman, dict(zeeman_kw or {})
         if name is None:
             name = f"{model}_{interp_short(interp)}_wx{self.wx}" + (f"_{tag}" if tag else "")
         self.dir = os.path.join(root, name)
@@ -123,7 +124,7 @@ class Folder:
     # ------------------------------------------------------------------ helpers
     def params(self, B, polarized=True, **kw):
         base = dict(B_T=float(B), kT=self.kT, interp=self.interp, maxiter=self.maxiter,
-                    spin_polarized=polarized, zeeman_profile=self.zeeman, **MODELS[self.model])
+                    spin_polarized=polarized, zeeman_profile=self.zeeman, **self.zeeman_kw, **MODELS[self.model])
         base.update(kw)
         return SCFParams(**base)
 
@@ -138,10 +139,12 @@ class Folder:
         if B in self._leads:
             return self._leads[B]
         t0 = time.perf_counter()
-        p = self.params(B)
+        # PHYSICS-CHOICE (OPEN_QUESTIONS #14): the alternating field vanishes outside D, so the leads of the
+        # cell are at zero field: mu(0) and the B = 0 wire at every B (uniform / staggered: leads at +-B).
+        p = self.params(0.0 if self.zeeman == "alternating" else B)
         lead, mu, V_ext = lead_state(self.ham, self.hart, self.q, p, self.N, n_init=n_init)
         U = self.U
-        info = dict(B=B, model=self.model, interp=self.interp, mu_meV=U.au_to_meV(mu), M=float(lead.M),
+        info = dict(B=B, lead_field_T=p.B_T, model=self.model, interp=self.interp, mu_meV=U.au_to_meV(mu), M=float(lead.M),
                     subbands_up_meV=U.au_to_meV(np.asarray(lead.subbands[0][:3])).tolist(),
                     subbands_dn_meV=U.au_to_meV(np.asarray(lead.subbands[1][:3])).tolist(),
                     N_sub_up=np.asarray(lead.N_sub[0][:3]).tolist(), N_sub_dn=np.asarray(lead.N_sub[1][:3]).tolist(),

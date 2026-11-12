@@ -215,8 +215,13 @@ def lead_dispersion(ham, V_col, sector_level=0):
     E = np.sort(P.d, axis=1)[:, sector_level]
     o = np.argsort(k)
     k, E = k[o], E[o]
-    keep = np.concatenate([[True], np.diff(k) > 1e-12])
+    keep = np.concatenate([[True], np.diff(k) > 1e-12]) & (E < 1e5)           # drop padding levels (1e6)
     k, E = k[keep], E[keep]
+    # near the cutoff circle the blocks hold only a few G_y and the band stops being regular: keep the
+    # strictly increasing part from k = 0 (enough for the band edge and for k(E) below E3)
+    stop = np.nonzero(np.diff(E) <= 0)[0]
+    if stop.size:
+        k, E = k[:stop[0] + 1], E[:stop[0] + 1]
     inv = PchipInterpolator(E, k)
     return k, E, (lambda e: inv(np.clip(np.asarray(e, float), E[0], E[-1])))
 
@@ -328,3 +333,20 @@ def ring_transmission_2d(V, ham, E_grid_meV, lead_win_nm=(600.0, 1500.0), window
         res["dM1_vs_M2_max"] = float(max(np.max(np.abs(np.angle(np.exp(2j * (ph["d_M1"] - ph["d_M2"]))))) / 2
                                          for ph in (pe, po)))
     return res
+
+
+def embed_potential(F, grid, qpc_params, Lx_new_nm, ecut_meV=15.0, x_flat_nm=2400.0, units=U):
+    """Frozen KS potential of a solved cell (smooth-part coefficients F, qpc.transport.smooth_coeffs) placed in a
+    longer cell of length Lx_new (same Ly and E_cut): V(x, y) evaluated exactly (Fourier series + analytic V_ext,
+    qpc.transport.veff_on_grid) for |x| <= x_flat and continued with the column at |x| = x_flat (flat there to
+    ~1e-5 meV) for |x| > x_flat. Longer leads = denser ring levels = smaller interpolation error of T(E); the
+    scatterer is unchanged. Returns (grid_new, V_new [Ha*])."""
+    from .grid import grid_from_cutoff
+    from .transport import veff_on_grid
+    g = grid_from_cutoff(units.nm_to_au(Lx_new_nm), grid.Ly, units.meV_to_au(ecut_meV))
+    if g.Ny != grid.Ny:
+        raise ValueError("y grids differ")
+    x = units.au_to_nm(min_image(g.real_axes()[0], g.Lx))
+    y = units.au_to_nm(min_image(g.real_axes()[1], g.Ly))
+    V = veff_on_grid(F, grid, qpc_params, np.clip(x, -x_flat_nm, x_flat_nm), y)
+    return g, units.meV_to_au(V)

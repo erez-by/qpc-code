@@ -13,6 +13,7 @@ results/archive/transport_kwant_numerov_v1/).
 import argparse
 import json
 import os
+import subprocess
 import sys
 import time
 import warnings
@@ -366,10 +367,196 @@ def fig_phaseA():
     plt.close(fig)
 
 
+# ----------------------------------------------------------------------------- Phase B
+PB_ROOT = "results/transmission/phaseB"
+PB_UP = [3.0, 3.5, 4.0, 5.0]               # 3.0 first (5 T start from the clean wire), then upward ...
+PB_DOWN = [2.5, 2.0, 1.5, 1.0]             # ... and downward, each 5 T start seeded from the neighbouring V0
+RAMP5 = [5.0, 4.0, 2.0, 1.0, 0.5, 0.25, 0.0]
+PB_EST = "notes/ring_B_estimate.txt"
+
+
+def pb_name(V0):
+    return f"C_exch_wx1.5_V{float(V0)}"
+
+
+def pb_neighbour(V0):
+    for chain in (PB_UP, PB_DOWN):
+        if V0 in chain:
+            i = chain.index(V0)
+            if chain is PB_UP:
+                return None if i == 0 else PB_UP[i - 1]
+            return 3.0 if i == 0 else PB_DOWN[i - 1]
+    return None
+
+
+def ring_T_state(npz, V0, kinds=(0, 1)):
+    """Phase A procedure on one saved state: ring M1 (leads padded to PAD_LX) and M1 at Lx 5000, T at mu, per spin."""
+    from qpc.ring_transmission import embed_potential, fermi_average
+    from qpc.transport import load_state
+    z = np.load(npz)
+    mu = U.au_to_meV(float(z["mu"]))
+    st = load_state(npz, 1.5, V0)
+    E = np.round(np.arange(mu - 0.4, mu + 0.4 + 1e-9, 0.002), 6)
+    out = dict(mu=mu, converged=bool(z["converged"]), M=float(z["M"]), spins={})
+    g5 = st.grid
+    ham5 = Hamiltonian(g5, U.meV_to_au(15.0))
+    ham2 = None
+    same = np.allclose(z["V_up"], z["V_dn"])
+    for s in kinds:
+        if s == 1 and same:
+            out["spins"][1] = out["spins"][0]
+            continue
+        V = z["V_up" if s == 0 else "V_dn"]
+        r5 = ring_transmission_2d(V, ham5, E, windows_nm=[(600.0, 1500.0), (1000.0, 2400.0)])
+        g2, V2 = embed_potential(st.F[s], st.grid, st.qpc, PAD_LX)
+        ham2 = ham2 or Hamiltonian(g2, U.meV_to_au(15.0))
+        r = ring_transmission_2d(V2, ham2, E, windows_nm=[(600.0, 1500.0), (1000.0, 2400.0)])
+        out["spins"][s] = dict(T_mu=float(np.interp(mu, E, r["T_M1"])), T_mu_lx5000=float(np.interp(mu, E, r5["T_M1"])),
+                               T_mu_M2=float(np.interp(mu, E, r["T_M2"])),
+                               T_avg_2kT=fermi_average(E, r["T_M1"], mu, KT, 2.0), E1=r["E1"], E2=r["E2"],
+                               n_kept=r["n_kept"], dropped=len(r["dropped"]))
+    out["G_e2h"] = out["spins"][0]["T_mu"] + out["spins"][1]["T_mu"]
+    return out
+
+
+def noninteracting_T(V0, e_above_bottom):
+    """Bare HMW potential (wx 1.5, this V0), ring T at E = E1 + e_above_bottom (the interacting state's mu - E1)."""
+    g = grid_from_cutoff(U.nm_to_au(5000.0), U.nm_to_au(320.0), U.meV_to_au(15.0))
+    ham = Hamiltonian(g, U.meV_to_au(15.0))
+    V = external_potential(g, QPCParams(hbar_wx_meV=1.5, V0_meV=V0))
+    E = np.round(np.arange(1.06, 4.98, 0.002), 6)
+    r = ring_transmission_2d(V, ham, E, windows_nm=[(600.0, 1500.0)])
+    return float(np.interp(r["E1"] + e_above_bottom, E, r["T_M1"]))
+
+
+def phaseB_case(V0, maxiter=300):
+    """Janak ramp 5 -> 0 T at this V0 (Folder of scripts/qpc_driver.py), then the ring transmission of the
+    B = 0 polarised state and of the unpolarised reference; ringT.json in the folder."""
+    sys.path.insert(0, os.path.dirname(__file__))
+    from qpc_driver import Folder
+    t0 = time.time()
+    F = Folder("C", "exchange", 1.5, maxiter=maxiter, log=lambda m: print(m, flush=True), level_diag=True, V0=V0,
+               root=PB_ROOT, name=pb_name(V0))
+    nb = pb_neighbour(V0)
+    seed = os.path.join(PB_ROOT, pb_name(nb), "B5.npz") if nb is not None else None
+    F.ramp(RAMP5, start_from=seed if seed and os.path.exists(seed) else None)
+    t_scf = time.time() - t0
+    b0 = json.load(open(F.path("B0.json")))
+    P = ring_T_state(F.path("B0.npz"), V0)
+    Un = ring_T_state(F.path("unpol.npz"), V0)
+    w = json.load(open(F.path("wire_B0.json")))
+    e_rel = P["mu"] - w["subbands_up_meV"][0]
+    info = dict(V0=V0, hbar_wx=1.5, d_nm=U.au_to_nm(QPCParams(hbar_wx_meV=1.5, V0_meV=V0).d), seed=seed,
+                converged=b0["converged"], iterations=b0["iterations"], M_loc=b0["M_loc"], zeta0=b0["zeta0"],
+                n1d_0=b0["n1d_0"], P=P, unpol=Un, mu_minus_E1=e_rel, T_noninteracting=noninteracting_T(V0, e_rel),
+                time_scf_s=t_scf, time_total_s=time.time() - t0)
+    jdump(F.path("ringT.json"), info)
+    print(f"[ringB V0 {V0}] conv {info['converged']} M_loc {info['M_loc']:.3f} | T_up {P['spins'][0]['T_mu']:.4f} "
+          f"T_dn {P['spins'][1]['T_mu']:.4f} G {P['G_e2h']:.4f} e^2/h | unpol G {Un['G_e2h']:.4f} | "
+          f"non-int T {info['T_noninteracting']:.4f} | SCF {t_scf / 60:.1f} min, total {info['time_total_s'] / 60:.1f} min",
+          flush=True)
+
+
+def phaseB_summary():
+    rows = []
+    for V0 in sorted(PB_UP + PB_DOWN):
+        p = os.path.join(PB_ROOT, pb_name(V0), "ringT.json")
+        if os.path.exists(p):
+            rows.append(json.load(open(p)))
+    if not rows:
+        return
+    cols = ["V0", "d_nm", "converged", "M_loc", "zeta0", "T_up", "T_dn", "G_e2h", "T_up_lx5000", "T_dn_lx5000",
+            "G_unpol_e2h", "T_noninteracting", "mu_minus_E1"]
+    lines = [",".join(cols)]
+    for j in rows:
+        P, Un = j["P"], j["unpol"]
+        lines.append(",".join(str(v) for v in (j["V0"], f"{j['d_nm']:.1f}", j["converged"], f"{j['M_loc']:.4f}",
+                     f"{j['zeta0']:.3f}", f"{P['spins']['0']['T_mu']:.5f}", f"{P['spins']['1']['T_mu']:.5f}",
+                     f"{P['G_e2h']:.5f}", f"{P['spins']['0']['T_mu_lx5000']:.5f}", f"{P['spins']['1']['T_mu_lx5000']:.5f}",
+                     f"{Un['G_e2h']:.5f}", f"{j['T_noninteracting']:.5f}", f"{j['mu_minus_E1']:.4f}")))
+    os.makedirs(PB_ROOT, exist_ok=True)
+    open(os.path.join(PB_ROOT, "summary.csv"), "w").write("\n".join(lines) + "\n")
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    UP, DN = "#1f5fbf", "#e8710a"
+    V = np.array([j["V0"] for j in rows])
+    conv = np.array([j["converged"] for j in rows])
+    Tu = np.array([j["P"]["spins"]["0"]["T_mu"] for j in rows])
+    Td = np.array([j["P"]["spins"]["1"]["T_mu"] for j in rows])
+    Gu = np.array([j["unpol"]["G_e2h"] for j in rows])
+    Tn = np.array([j["T_noninteracting"] for j in rows])
+    fig, (a, b) = plt.subplots(2, 1, figsize=(7.5, 7.5), sharex=True, gridspec_kw=dict(height_ratios=[1.6, 1], hspace=0.1))
+    for ax in (a, b):
+        ax.grid(True, color=GRID, lw=0.6)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.tick_params(colors=MUTED, labelsize=8)
+
+    def pts(ax, y, color, marker, label, ls="-"):
+        ax.plot(V, y, color=color, lw=1.5, ls=ls)
+        ax.plot(V[conv], y[conv], marker, color=color, ms=7, ls="none", label=label)
+        ax.plot(V[~conv], y[~conv], marker, mfc="white", mec=color, ms=7, ls="none")
+    pts(a, Tu + Td, INK, "o", r"$G/(e^2/h) = T_\uparrow + T_\downarrow$ (polarised B = 0 state)")
+    pts(a, Tu, UP, "^", r"$T_\uparrow(\mu)$")
+    pts(a, Td, DN, "v", r"$T_\downarrow(\mu)$", ls="--")
+    a.plot(V, Gu, color=MUTED, lw=1.2, label="G/(e^2/h), unpolarised state")
+    a.plot(V, 2 * Tn, color=MUTED, lw=1.2, ls="--", label="2 x T non-interacting (same E - band bottom)")
+    a.set_ylabel(r"transmission / $G$ ($e^2/h$)", fontsize=9)
+    a.legend(frameon=False, fontsize=7.5)
+    a.set_title(r"Ring transmission at fixed $\mu$ vs barrier height, model C, exchange, $\hbar\omega_x$ = 1.5 meV "
+                "(hollow: not converged)", fontsize=9, color=INK, loc="left")
+    pts(b, np.array([j["M_loc"] for j in rows]), INK, "o", "net spin (M_loc)")
+    pts(b, np.array([j["zeta0"] for j in rows]), MUTED, "s", r"$\zeta_0$")
+    b.set_xlabel(r"$V_0$ (meV)  (d = $\sqrt{2V_0/m^*}/\omega_x$ grows with $V_0$)", fontsize=9)
+    b.legend(frameon=False, fontsize=7.5)
+    os.makedirs(FIGS, exist_ok=True)
+    fig.savefig(os.path.join(FIGS, "fig_T_vs_V0.png"), dpi=170, bbox_inches="tight")
+    plt.close(fig)
+
+
+def phaseB(go):
+    sys.path.insert(0, os.path.dirname(__file__))
+    import overnight as ov
+    n = ov.physical_cores()
+    env = dict(os.environ, OMP_NUM_THREADS=str(n), OPENBLAS_NUM_THREADS=str(n), MKL_NUM_THREADS=str(n),
+               PYTHONUNBUFFERED="1")
+    order = PB_UP + PB_DOWN
+    for i, V0 in enumerate(order if go else order[:1]):
+        jid = f"RB_V{V0:g}"
+        if ov.marker(jid) == "ok":
+            ov.say(f"{jid}: ok earlier; skipped")
+            continue
+        ov.say(f"{jid} START V0 = {V0}")
+        t0 = time.time()
+        code = ov.run_job(jid, 240, [[ov.PY, "scripts/run_ring_T.py", "phaseB-case", "--V0", str(V0)]], env)
+        ov.say(f"{jid} END {'ok' if code == 0 else 'FAILED (' + str(code) + ')'} after {(time.time() - t0) / 60:.1f} min")
+        subprocess.run([ov.PY, "scripts/run_ring_T.py", "phaseB-summary"], cwd=ov.ROOT, env=env)
+        import glob
+        extra = (glob.glob(os.path.join(ov.ROOT, PB_ROOT, "*", "*.json")) + [os.path.join(ov.ROOT, PB_ROOT, "summary.csv")])
+        ov.git_sync(jid, msg=f"ring transmission Phase B: V0 = {V0} meV", extra=[p for p in extra if os.path.exists(p)])
+        if i == 0 and not go:
+            j = json.load(open(os.path.join(PB_ROOT, pb_name(V0), "ringT.json")))
+            m = j["time_total_s"] / 60
+            txt = (f"V0 = {V0}: {m:.1f} min (SCF ramp {j['time_scf_s'] / 60:.1f} min + ring T). Remaining {len(order) - 1} "
+                   f"V0 values: ~{(len(order) - 1) * m / 60:.1f} h (larger V0 may need more iterations).")
+            open(PB_EST, "w").write(txt + "\n")
+            ov.say(txt + " Stopping; run with --go for the rest.")
+            return
+    ov.say("Phase B queue finished")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("phase", choices=["phase0", "phaseA", "figs"])
+    ap.add_argument("phase", choices=["phase0", "phaseA", "figs", "phaseB", "phaseB-case", "phaseB-summary"])
+    ap.add_argument("--V0", type=float, default=None)
+    ap.add_argument("--go", action="store_true", help="phaseB: run all V0 (after the first-V0 estimate)")
     a = ap.parse_args()
+    if a.phase == "phaseB":
+        return phaseB(a.go)
+    if a.phase == "phaseB-case":
+        return phaseB_case(a.V0)
+    if a.phase == "phaseB-summary":
+        return phaseB_summary()
     if a.phase == "phase0":
         phase0()
     elif a.phase == "phaseA":
